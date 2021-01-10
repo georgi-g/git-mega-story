@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SvgDrawing {
@@ -69,19 +70,22 @@ public class SvgDrawing {
                     switch (historyEntry.typeOfParent) {
                         case MERGE_MAIN:
                         case SINGLE_PARENT: {
-                            Path path = drawMainParentConnection(historyEntry, c, table);
-                            result.add(String.format(SvgDrawing.path, path.startPoint + path.path, colorLine));
-                            maxColumnSoFar = Math.max(path.parentColumn, maxColumnSoFar);
+                            Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
+                            if (path.isPresent()) {
+                                result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, colorLine));
+                                maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
+                            }
                             break;
                         }
                         case MERGE_STH:
                             Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table);
 
-                            Path path = drawMainParentConnection(historyEntry, c, table);
-                            result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path + path.path, colorLine));
-                            maxColumnSoFar = Math.max(path.parentColumn, maxColumnSoFar);
-                            maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
-
+                            Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
+                            if (path.isPresent()) {
+                                result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLine));
+                                maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
+                                maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
+                            }
                             break;
                     }
 
@@ -204,7 +208,7 @@ public class SvgDrawing {
         return result;
     }
 
-    private static Path drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
+    private static Optional<Path> drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
@@ -212,10 +216,10 @@ public class SvgDrawing {
             if (parentColumn >= 0) {
 
 
-                return getPathToParent(entry, columnPosition, startingId, parentId, parentColumn);
+                return Optional.of(getPathToParent(entry, columnPosition, startingId, parentId, parentColumn));
             }
         }
-        throw new RuntimeException("There was no parent");
+        return Optional.empty();
     }
 
     @SuppressWarnings("UnnecessaryLocalVariable")

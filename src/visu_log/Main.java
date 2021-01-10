@@ -50,9 +50,11 @@ public class Main {
         revWalk.sort(RevSort.TOPO);
 
         //noinspection FuseStreamOperations
-        List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).collect(Collectors.toList());
+        System.out.println("Retrieve All commits");
+        List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).limit(2000).collect(Collectors.toList());
 
-        master.sort(new CommitComparator(revWalk, false));
+        System.out.println("Sorting everything");
+        //master.sort(new CommitComparator(revWalk, false));
 
         System.out.println("Log fetched");
 //        master.forEach(revCommit ->
@@ -80,25 +82,33 @@ public class Main {
 
         Column theParentColumn = Column.createNewList();
 
+        System.out.println("Calculate Entries from all Commits");
         final int[] branchId = {0};
-        for (int i = 0, masterSize = master.size(); i < masterSize; i++) {
+        for (int i = 0; i < master.size(); i++) {
             RevCommit revCommit = master.get(i);
+            if (i % 100 == 0)
+                System.out.println("Calculating entry: " + i + " of " + master.size());
             calculateEntryForCommit(revCommit, branches, theParentColumn, branchId, i);
         }
 
 
         List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
 
+        System.out.println("Create Table from dropping Columns");
         ArrayList<List<HistoryEntry>> table = createTableFromDroppingColumns(columns);
+        System.out.println("Rewrite secondary dropping");
         rewriteSecondaryDropping(table);
+        System.out.println("compress table");
         compressTable(table);
 
+        System.out.println("create simplified graph");
         StringifiedGraph graph = printGraph(branches, table);
 
         System.out.println(graph.header);
 
         graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
 
+        System.out.println("create create svg");
         SvgDrawing.createSvg(table, branches);
     }
 
@@ -331,12 +341,15 @@ public class Main {
             fillDummy(next, dummyEntry);
 
             boolean rowIsJoinable = true;
+            boolean nextIsLabeled = false;
+            boolean prevIsLabeled = false;
             for (int i = 0; i < next.size(); i++) {
                 rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
-                rowIsJoinable &= next.get(i) == null || !next.get(i).isLabeled;
+                nextIsLabeled |= next.get(i) != null && !next.get(i).isLabeled;
+                prevIsLabeled |= previous.get(i) != null && previous.get(i).isLabeled;
             }
 
-            if (!rowIsJoinable)
+            if (!rowIsJoinable || (nextIsLabeled && prevIsLabeled))
                 continue;
 
             for (int i = 0; i < next.size(); i++) {

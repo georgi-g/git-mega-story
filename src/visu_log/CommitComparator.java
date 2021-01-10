@@ -49,7 +49,7 @@ class CommitComparator implements Comparator<RevCommit> {
                     RevCommit firstParent1 = getFirstParentOfAllParents(o1);
                     RevCommit firstParent2 = getFirstParentOfAllParents(o2);
 
-                    return -Comparator.comparing(RevCommit::getCommitTime).compare(firstParent1, firstParent2);
+                    return -Comparator.comparing(RevCommit::getCommitTime).thenComparing(RevCommit::name).compare(firstParent1, firstParent2);
                 }
             } finally {
                 revWalk.reset();
