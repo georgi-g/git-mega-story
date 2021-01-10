@@ -2,6 +2,7 @@ package visu_log;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -11,7 +12,7 @@ public class ColumnsSorter {
     static boolean joinDroppingColumns = true;
     static boolean mayJoinDroppingMainColumn = false;
     static boolean forceCreateNewColumnsForLabeledCommits = true;
-    static boolean sortColumnsByRank = true;
+    static boolean sortColumnsByBranchesRank = true;
 
     static List<Column> sortCommitsIntoColumns(List<Branch> branches, List<? extends Commit> commits) {
         Column theParentColumn = Column.createNewList();
@@ -38,7 +39,7 @@ public class ColumnsSorter {
             }
         }
 
-        columns.sort(Comparator.comparing(c -> c.rank.getAsDouble()));
+        columns.sort(Comparator.comparing((Column c) -> c.cluster.cc.id).thenComparing(c -> c.rank.getAsDouble()));
     }
 
     private static void calculateEntryForCommit(Commit revCommit, List<Branch> branches, Column theParentColumn, int[] branchId, int commitId) {
@@ -87,7 +88,7 @@ public class ColumnsSorter {
                     .orElse(null);
 
         // maybe: if branch an important one, it may not be sorted after not important branches, so check that first
-        if (sortColumnsByRank) {
+        if (sortColumnsByBranchesRank) {
             OptionalInt myRank = branches.stream().mapToInt(b -> b.ranking).min();
             if (myRank.isPresent()) {
                 Optional<Column> higherRankColumn = theParentColumn.getColumnStream()
@@ -183,17 +184,31 @@ public class ColumnsSorter {
         if (column.rank != null) {
             ((Column.ReferenceInfos) column.rank).children.add(child);
         }
+
+        column.cluster.join(child.cluster);
     }
 
     private static void addParent(Column column, HistoryEntry parent) {
         if (column.rank != null) {
             ((Column.ReferenceInfos) column.rank).parent = parent;
         }
+
+        column.cluster.join(parent.column.cluster);
     }
 
     private static Column columnForSecondary(Column column) {
         column.rank = new Column.ReferenceInfos();
         return column;
+    }
+
+    public static void assignClusterIds(List<Column> columns) {
+        IdentityHashMap<Column.ClusterCollector, List<Column>> clusters = columns.stream().collect(Collectors.groupingBy(c -> c.cluster.cc, IdentityHashMap::new, Collectors.toList()));
+        System.out.println("Number of clusters: " + clusters.keySet().size());
+        List<Column.ClusterCollector> sortedClusters = clusters.entrySet().stream()
+                .sorted(Comparator.comparing((Map.Entry<Column.ClusterCollector, List<Column>> e) -> e.getValue().get(0).entries.stream().findFirst().map(ee -> ee.commitId).orElse(0)))
+                .map(Map.Entry::getKey).collect(Collectors.toList());
+        AtomicInteger clusterId = new AtomicInteger();
+        sortedClusters.forEach(c -> c.id = clusterId.getAndIncrement());
     }
 }
 

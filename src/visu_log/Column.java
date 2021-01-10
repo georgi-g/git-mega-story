@@ -1,14 +1,12 @@
 package visu_log;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.function.DoubleSupplier;
 import java.util.stream.Stream;
 
 class Column {
     int branchId;
+    Cluster cluster = new Cluster();
     List<Column> subColumns = new ArrayList<>();
     Deque<HistoryEntry> entries = new ArrayDeque<>();
 
@@ -72,6 +70,34 @@ class Column {
             //noinspection ConstantConditions // should not be empty
             double maxId = parent.column.entries.peekLast().commitId + 2;
             return parentRank + (parent.commitId + 1) / maxId * mirror;
+        }
+    }
+
+    static class Cluster {
+        ClusterCollector cc = new ClusterCollector();
+
+        {
+            cc.allClusterMembers.add(this);
+        }
+
+        public void join(Cluster other) {
+            if (other.cc == cc)
+                return;
+
+            other.cc.collect(cc.allClusterMembers);
+            if (cc != other.cc)
+                throw new RuntimeException("ClusterCollector must set all ccs, also mine");
+        }
+    }
+
+    static class ClusterCollector {
+        int id;
+
+        Set<Cluster> allClusterMembers = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        private void collect(Set<Cluster> clusters) {
+            allClusterMembers.addAll(clusters);
+            clusters.forEach(c -> c.cc = this);
         }
     }
 }

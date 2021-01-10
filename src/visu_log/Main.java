@@ -61,11 +61,12 @@ public class Main {
         System.out.println("Log fetched");
 
 
-        //noinspection unchecked
-        printAllCommits((List<? extends RevCommit>) master);
+        //printAllCommits((List<? extends RevCommit>) master);
 
         System.out.println("Sort Commits into Columns");
         List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(branches, master);
+
+        ColumnsSorter.assignClusterIds(columns);
 
         ColumnsSorter.sortSecondaryDroppingIntoTheDirectionOfTheirParent(columns);
 
@@ -114,6 +115,7 @@ public class Main {
         }
     }
 
+    @SuppressWarnings("unused")
     private static void printAllCommits(List<? extends RevCommit> commits) {
         commits.forEach(revCommit -> {
             System.out.println("Commit Name " + revCommit.getId().getName());
