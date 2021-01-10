@@ -70,29 +70,7 @@ public class Main {
 
         //noinspection ConstantConditions
         if (true) {
-            master.sort((o1, o2) -> {
-                try {
-                    if (revWalk.isMergedInto(o2, o1))
-                        return -1;
-                    if (revWalk.isMergedInto(o1, o2))
-                        return +1;
-                    if (o1.getParents().length == 1 && o2.getParents().length > 1) {
-                        for (int i = 1; i < o2.getParents().length; i++) {
-                            if (o2.getParent(i) == o1.getParent(0))
-                                return -1;
-                        }
-                    } else if (o2.getParents().length == 1 && o1.getParents().length > 1) {
-                        for (int i = 1; i < o1.getParents().length; i++) {
-                            if (o1.getParent(i) == o2.getParent(0))
-                                return 1;
-                        }
-                    }
-
-                    return 0;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            master.sort(new CommitComparator(revWalk));
         }
 
         System.out.println("Log fetched");
