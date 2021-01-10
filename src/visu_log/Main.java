@@ -13,7 +13,6 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -144,21 +143,41 @@ public class Main {
                     .collect(Collectors.toList());
 
             boolean mayReuseBranchForMultiParentCommit = true;
+            boolean reuseDroppingColumn = true;
 
             final boolean[] alreadyReused = {false};
+            Set<RevCommit> usedParents = new HashSet<>();
             referencingEntries
                     .forEach(h -> {
+                        //noinspection ConstantConditions
                         boolean reuseColumn = !alreadyReused[0] && (revCommit.getParentCount() <= 1 || mayReuseBranchForMultiParentCommit);
+                        // here we have a column having history entries waiting for this commit
                         if (reuseColumn) {
-                            newEntry(ll, revCommit, h.column);
+                            //    newEntry(ll, revCommit, h.column);
+                            RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
+                            if (parent != null)
+                                usedParents.add(parent);
+                            newEntryForParent(ll, revCommit, parent, h.column, TypeOfBackReference.YES);
                             alreadyReused[0] = true;
                         } else {
-                            newEntryBackReference(ll, revCommit, h.column);
+                            // here we create a backreference, since we found a column waiting for this commit
+                            newEntryBackReferenceWithoutParent(ll, revCommit, h.column);
                         }
                     });
 
-            if (!alreadyReused[0])
-                newEntry(ll, revCommit, theParentColumn.createSubColumn(branchId[0]++));
+            // here we create new column for each entry, so no history entries in column waiting for it
+            if (revCommit.getParentCount() > 0) {
+                for (RevCommit parent : revCommit.getParents()) {
+                    if (!usedParents.contains(parent))
+                        newEntryForParent(ll, revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO);
+                }
+                branchId[0]++;
+            } else {
+                if (!alreadyReused[0]) {
+                    newEntryForParent(ll, revCommit, null, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO);
+                    branchId[0]++;
+                }
+            }
 
         });
 
@@ -186,30 +205,8 @@ public class Main {
                     commitDidAppear = true;
                     columnsHavingCommits.add(c);
 
+                    brancPic.append(historyEntry.typeOfParent.getSymbol(historyEntry.backReference));
 
-                    switch (historyEntry.typeOfEntry) {
-                        case NORMAL:
-                            brancPic.append("┿");
-                            break;
-                        case BACK_REFERENCE:
-                            brancPic.append("╰");
-                            break;
-                        case INITIAL:
-                            brancPic.append("\u2537");
-                            break;
-                        case MERGE_STH:
-                            brancPic.append("\u256e");
-                            break;
-                        case MERGE_MAIN:
-                            brancPic.append("\u2523");
-                            break;
-                    }
-
-//                    if (first)
-//                        System.out.print("\u251c");
-//                    else
-//                        System.out.print("\u256e");
-                    //System.out.print(c.branchId);
                 } else {
                     if (!c.isEmpty() && columnsHavingCommits.contains(c))
                         brancPic.append("│");
@@ -242,51 +239,76 @@ public class Main {
 
     }
 
-    private static void newEntryBackReference(LinkedList<HistoryEntry> ll, RevCommit revCommit, Column theColumn) {
+    private static void newEntryBackReferenceWithoutParent(LinkedList<HistoryEntry> ll, RevCommit revCommit, Column theColumn) {
         HistoryEntry historyEntry = new HistoryEntry(theColumn);
         historyEntry.commit = revCommit;
-        historyEntry.typeOfEntry = TypeOfEntry.BACK_REFERENCE;
+        historyEntry.backReference = TypeOfBackReference.YES;
+        historyEntry.typeOfParent = TypeOfParent.NONE;
         ll.add(historyEntry);
     }
 
-    private static void newEntry(LinkedList<HistoryEntry> ll, RevCommit revCommit, Column theColumn) {
-        if (revCommit.getParents().length > 1) {
-            AtomicBoolean usedColumn = new AtomicBoolean(false);
-            Arrays.stream(revCommit.getParents())
-                    .forEach(p -> {
-                        TypeOfEntry typeOfEntry = usedColumn.get() ? TypeOfEntry.MERGE_STH : TypeOfEntry.MERGE_MAIN;
-                        Column column = usedColumn.getAndSet(true) ? theColumn.createSubColumn(theColumn.branchId) : theColumn;
+    private static void newEntryForParent(LinkedList<HistoryEntry> ll, RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference) {
+        HistoryEntry historyEntry = new HistoryEntry(theColumn);
+        historyEntry.commit = revCommit;
 
-                        HistoryEntry historyEntry = new HistoryEntry(column);
-                        historyEntry.typeOfEntry = typeOfEntry;
-                        historyEntry.commit = revCommit;
-                        historyEntry.parent = p;
-                        ll.add(historyEntry);
-                    });
-        } else if (revCommit.getParents().length == 1) {
-            RevCommit p = revCommit.getParents()[0];
-            HistoryEntry historyEntry = new HistoryEntry(theColumn);
-            historyEntry.commit = revCommit;
-            historyEntry.typeOfEntry = TypeOfEntry.NORMAL;
-            historyEntry.parent = p;
-            ll.add(historyEntry);
-        } else {
-            HistoryEntry historyEntry = new HistoryEntry(theColumn);
-            historyEntry.commit = revCommit;
-            historyEntry.typeOfEntry = TypeOfEntry.INITIAL;
-            ll.add(historyEntry);
+        switch (revCommit.getParentCount()) {
+            default:
+                historyEntry.typeOfParent = parent == revCommit.getParent(0) ? TypeOfParent.MERGE_MAIN : TypeOfParent.MERGE_STH;
+                break;
+            case 1:
+                historyEntry.typeOfParent = TypeOfParent.SINGLE_PARENT;
+                break;
+            case 0:
+                historyEntry.typeOfParent = TypeOfParent.INITIAL;
+                break;
+        }
+
+        historyEntry.backReference = backReference;
+        historyEntry.parent = parent;
+        ll.add(historyEntry);
+    }
+
+    private enum TypeOfParent {
+        SINGLE_PARENT("┿", "┯"),
+        INITIAL("┷", "╸"),
+        MERGE_STH("y", "╮"),
+        MERGE_MAIN("┣", "┏"),
+        NONE("╰", "x");
+
+        private final String withBackReference;
+        private final String withoutBackReference;
+
+        TypeOfParent(String withBackReference, String withoutBackReference) {
+            this.withBackReference = withBackReference;
+            this.withoutBackReference = withoutBackReference;
+        }
+
+        TypeOfParent(String symbol) {
+            this.withBackReference = symbol;
+            this.withoutBackReference = symbol;
+        }
+
+        String getSymbol(TypeOfBackReference backReference) {
+            switch (backReference) {
+                case NO:
+                    return withoutBackReference;
+                case YES:
+                default:
+                    return withBackReference;
+            }
         }
     }
 
-    private enum TypeOfEntry {
-        NORMAL, INITIAL, MERGE_STH, MERGE_MAIN, BACK_REFERENCE
+    private enum TypeOfBackReference {
+        YES, NO
     }
 
     private static class HistoryEntry {
         RevCommit commit;
         RevCommit parent;
         final Column column;
-        TypeOfEntry typeOfEntry;
+        TypeOfBackReference backReference;
+        TypeOfParent typeOfParent;
 
         private HistoryEntry(Column column) {
             this.column = column;
