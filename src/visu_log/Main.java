@@ -161,6 +161,7 @@ public class Main {
                 .collect(Collectors.groupingBy(c -> c.entries.peekLast().parent));
 
         List<HistoryEntry> referencingEntries = columnsWithDanglingParents.getOrDefault(revCommit, new ArrayList<>()).stream().map(Column::getLastEntry).collect(Collectors.toList());
+        long numberOfMainReferencingEntries = referencingEntries.stream().filter(h -> h.joinedForSameParent.stream().anyMatch(hh -> hh.typeOfParent.isMainNode())).count();
 
         boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.getObjectId().equals(revCommit.getId()));
 
@@ -168,7 +169,7 @@ public class Main {
         boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
         boolean alwaysCreateNewColumns = false;
         boolean joinDroppingColumns = true;
-        boolean forceCreateNewColumnsForLabeledCommits = false;
+        boolean forceCreateNewColumnsForLabeledCommits = true;
 
         final boolean[] alreadyReused = {false};
         Set<RevCommit> usedParents = new HashSet<>();
@@ -178,10 +179,13 @@ public class Main {
                     (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
 
             //noinspection ConstantConditions
-            reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (h.typeOfParent != TypeOfParent.MERGE_STH && h.typeOfParent != TypeOfParent.SINGLE_PARENT));
-            // here we have a column having history entries waiting for this commit
+            boolean forceNew = forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (numberOfMainReferencingEntries > 1);
+            reuseColumn &= !forceNew;
             //noinspection ConstantConditions
-            if (reuseColumn && !alwaysCreateNewColumns) {
+            reuseColumn &= !alwaysCreateNewColumns;
+
+            // here we have a column having history entries waiting for this commit
+            if (reuseColumn) {
                 //    newEntry(ll, revCommit, h.column);
                 RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
                 if (parent != null)
@@ -307,15 +311,13 @@ public class Main {
     }
 
     private static void newEntryBackReferenceWithoutParent(RevCommit revCommit, Column theColumn, int commitId) {
-        HistoryEntry historyEntry = new HistoryEntry(theColumn, commitId);
-        historyEntry.commit = revCommit;
+        HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId);
         historyEntry.backReference = TypeOfBackReference.YES;
         historyEntry.typeOfParent = TypeOfParent.NONE;
     }
 
     private static void newEntryForParent(RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference, int commitId) {
-        HistoryEntry historyEntry = new HistoryEntry(theColumn, commitId);
-        historyEntry.commit = revCommit;
+        HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId, parent);
 
         switch (revCommit.getParentCount()) {
             default:
@@ -330,7 +332,6 @@ public class Main {
         }
 
         historyEntry.backReference = backReference;
-        historyEntry.parent = parent;
     }
 
     public enum TypeOfParent {
@@ -370,16 +371,37 @@ public class Main {
     }
 
     public static class HistoryEntry {
-        public RevCommit commit;
-        public RevCommit parent;
+        public final RevCommit commit;
+        public final RevCommit parent;
         public final Column column;
         public final int commitId;
         public TypeOfBackReference backReference;
         public TypeOfParent typeOfParent;
+        public List<HistoryEntry> joinedForSameParent = new ArrayList<>();
 
-        private HistoryEntry(Column column, int commitId) {
+        private HistoryEntry(RevCommit commit, Column column, int commitId) {
+            this.commit = commit;
             this.column = column;
             this.commitId = commitId;
+            this.parent = null;
+            column.appendEntry(this);
+            joinedForSameParent.add(this);
+        }
+
+        private HistoryEntry(RevCommit commit, Column column, int commitId, RevCommit parent) {
+            joinedForSameParent.add(this);
+            this.commit = commit;
+            this.column = column;
+            this.commitId = commitId;
+            this.parent = parent;
+            HistoryEntry maybeJoined = column.entries.peekLast();
+            if (maybeJoined != null && maybeJoined.parent != null && maybeJoined.parent != commit) {
+                if (maybeJoined.parent != this.parent) {
+                    throw new RuntimeException("Don't want to join foreign columns yet.");
+                } else {
+                    joinedForSameParent.addAll(maybeJoined.joinedForSameParent);
+                }
+            }
             column.appendEntry(this);
         }
     }
