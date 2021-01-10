@@ -27,7 +27,8 @@ public class SvgDrawing {
     static int incommingFromChildTransitionHeight = 13;
 
 
-    static String path = "\t<path d=\"%s\" stroke-width=\"1\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String path = "\t<path d=\"%s\" stroke-width=\"%d\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String pathMerge = "\t<path d=\"%s\" stroke-width=\"%d\" stroke-dasharray=\"4 1\" fill=\"none\" stroke=\"#%06x\"/>";
 
     static String usualCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String labeledCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
@@ -61,6 +62,7 @@ public class SvgDrawing {
             }
             for (int c = 0; c < entries.size(); c++) {
                 int colorLine = colors[c % colors.length].darker().getRGB() & 0xffffff;
+                int colorLineMerge = colors[c % colors.length].darker().getRGB() & 0xffffff;
                 int color = colors[c % colors.length].getRGB() & 0xffffff;
                 Main.HistoryEntry historyEntry = entries.get(c);
 
@@ -72,7 +74,7 @@ public class SvgDrawing {
                         case SINGLE_PARENT: {
                             Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
                             if (path.isPresent()) {
-                                result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, colorLine));
+                                result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, 1, colorLine));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                             }
                             break;
@@ -82,11 +84,11 @@ public class SvgDrawing {
 
                             Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
                             if (path.isPresent()) {
-                                result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLine));
+                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, 1, colorLineMerge));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             } else {
-                                result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path, colorLine));
+                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, 1, colorLineMerge));
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             }
@@ -133,7 +135,7 @@ public class SvgDrawing {
                 "            else\n" +
                 "                textNode.setAttribute(\"x\", currentXDelta);\n" +
                 "            let f = textNode.getBBox();\n" +
-                "            currentXDelta = f.x + f.width + 5;\n" +
+                "            currentXDelta = f.x + f.width + 10;\n" +
                 "            rectNode.setAttribute(\"width\", f.width + 4);\n" +
                 "            rectNode.setAttribute(\"height\", f.height + 4);\n" +
                 "            rectNode.setAttribute(\"x\", f.x - 2);\n" +

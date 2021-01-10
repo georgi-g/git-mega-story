@@ -54,7 +54,7 @@ public class Main {
         List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).limit(2000).collect(Collectors.toList());
 
         System.out.println("Sorting everything");
-        //master.sort(new CommitComparator(revWalk, false));
+        master.sort(new CommitComparator(revWalk, false));
 
         System.out.println("Log fetched");
 //        master.forEach(revCommit ->
