@@ -147,17 +147,13 @@ public class Main {
     }
 
     private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId) {
-        List<HistoryEntry> referencingEntries = theParentColumn.getColumnStream()
-                .map(c -> c.entries.peekLast())
-                .filter(Objects::nonNull)
-                .filter(e -> e.parent == revCommit)
-                .collect(Collectors.toList());
-
+        //noinspection ConstantConditions
         Map<RevCommit, List<Column>> columnsWithDanglingParents = theParentColumn.getColumnStream()
-                .map(c -> c.entries.peekLast())
-                .filter(Objects::nonNull)
-                .filter(e -> Objects.nonNull(e.parent))
-                .collect(Collectors.groupingBy(e -> e.parent, Collectors.mapping(e -> e.column, Collectors.toCollection(ArrayList::new))));
+                .filter(c -> c.entries.size() > 0)
+                .filter(c -> c.entries.peekLast().parent != null)
+                .collect(Collectors.groupingBy(c -> c.entries.peekLast().parent));
+
+        List<HistoryEntry> referencingEntries = columnsWithDanglingParents.getOrDefault(revCommit, new ArrayList<>()).stream().map(Column::getLastEntry).collect(Collectors.toList());
 
         boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.getObjectId().equals(revCommit.getId()));
 
@@ -169,28 +165,27 @@ public class Main {
 
         final boolean[] alreadyReused = {false};
         Set<RevCommit> usedParents = new HashSet<>();
-        referencingEntries
-                .forEach(h -> {
-                    //noinspection ConstantConditions
-                    boolean reuseColumn = !alreadyReused[0] &&
-                            (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
+        referencingEntries.forEach(h -> {
+            //noinspection ConstantConditions
+            boolean reuseColumn = !alreadyReused[0] &&
+                    (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
 
-                    //noinspection ConstantConditions
-                    reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (h.typeOfParent != TypeOfParent.MERGE_STH && h.typeOfParent != TypeOfParent.SINGLE_PARENT));
-                    // here we have a column having history entries waiting for this commit
-                    //noinspection ConstantConditions
-                    if (reuseColumn && !alwaysCreateNewColumns) {
-                        //    newEntry(ll, revCommit, h.column);
-                        RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
-                        if (parent != null)
-                            usedParents.add(parent);
-                        newEntryForParent(revCommit, parent, h.column, TypeOfBackReference.YES);
-                        alreadyReused[0] = true;
-                    } else {
-                        // here we create a backreference, since we found a column waiting for this commit
-                        newEntryBackReferenceWithoutParent(revCommit, h.column);
-                    }
-                });
+            //noinspection ConstantConditions
+            reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (h.typeOfParent != TypeOfParent.MERGE_STH && h.typeOfParent != TypeOfParent.SINGLE_PARENT));
+            // here we have a column having history entries waiting for this commit
+            //noinspection ConstantConditions
+            if (reuseColumn && !alwaysCreateNewColumns) {
+                //    newEntry(ll, revCommit, h.column);
+                RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
+                if (parent != null)
+                    usedParents.add(parent);
+                newEntryForParent(revCommit, parent, h.column, TypeOfBackReference.YES);
+                alreadyReused[0] = true;
+            } else {
+                // here we create a backreference, since we found a column waiting for this commit
+                newEntryBackReferenceWithoutParent(revCommit, h.column);
+            }
+        });
 
         //noinspection ConstantConditions
         if (joinDroppingColumns) {
@@ -374,6 +369,12 @@ public class Main {
 
         public void appendEntry(HistoryEntry he) {
             entries.add(he);
+        }
+
+        public HistoryEntry getLastEntry() {
+            if (entries.size() > 0)
+                return entries.peekLast();
+            throw new RuntimeException("Column is Empty");
         }
     }
 
