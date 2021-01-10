@@ -183,7 +183,34 @@ class SvgDrawingTest {
             entries3 = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
         }
 
-        showResults(entries1, entries1_1, entries1_2, entries2, entries3);
+        List<List<HistoryEntry>> entries4;
+        {
+            Commit additionalCommit = TestCommit.createCommit("F");
+            Commit additionalCommit2 = TestCommit.createCommit("F");
+
+            Column c1 = new Column();
+            Column c2 = new Column();
+            Column c3 = new Column();
+            Column c4 = new Column();
+
+            CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.NO, 2);
+            CommitStorage.newEntryForParent(masterCommit, null, c1, TypeOfBackReference.YES, 3);
+
+            CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c2, TypeOfBackReference.NO, 2);
+            CommitStorage.newEntryForParent(featureCommit, null, c2, TypeOfBackReference.NO, 4);
+
+            CommitStorage.newEntryForParent(masterMergeCommit, additionalCommit, c3, TypeOfBackReference.NO, 2);
+
+            CommitStorage.newEntryForParent(masterMergeCommit, additionalCommit2, c4, TypeOfBackReference.NO, 2);
+            CommitStorage.newEntryForParent(additionalCommit2, null, c4, TypeOfBackReference.NO, 3);
+
+            CommitStorage.newEntryForParent(additionalCommit, null, c4, TypeOfBackReference.NO, 4);
+
+            CommitStorage.newEntryBackReferenceWithoutParent(additionalCommit, c3, 4);
+            entries4 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3, c4));
+        }
+
+        showResults(entries1, entries1_1, entries1_2, entries2, entries3, entries4);
     }
 
     @Test

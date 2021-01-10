@@ -1,24 +1,26 @@
-let x = document.getElementsByClassName("commit_branches");
+{
+  let x = document.getElementsByClassName("commit_branches");
 
 
-for (let i = 0; i < x.length; i++) {
-  let currentXDelta = -1;
-  let groupNodes = x[i].querySelectorAll('g');
-  for (let gNode = 0; gNode < groupNodes.length; gNode++) {
-    let textNode = groupNodes[gNode].querySelector('text');
-    let rectNode = groupNodes[gNode].querySelector('rect');
-    if (!textNode || !rectNode)
-      continue;
-    if (currentXDelta < 0)
-      currentXDelta = textNode.getAttribute("x");
-    else
-      textNode.setAttribute("x", currentXDelta);
-    let f = textNode.getBBox();
-    currentXDelta = f.x + f.width + 10;
-    rectNode.setAttribute("width", f.width + 4);
-    rectNode.setAttribute("height", f.height + 4);
-    rectNode.setAttribute("x", f.x - 2);
-    rectNode.setAttribute("y", f.y - 2);
+  for (let i = 0; i < x.length; i++) {
+    let currentXDelta = -1;
+    let groupNodes = x[i].querySelectorAll('g');
+    for (let gNode = 0; gNode < groupNodes.length; gNode++) {
+      let textNode = groupNodes[gNode].querySelector('text');
+      let rectNode = groupNodes[gNode].querySelector('rect');
+      if (!textNode || !rectNode)
+        continue;
+      if (currentXDelta < 0)
+        currentXDelta = textNode.getAttribute("x");
+      else
+        textNode.setAttribute("x", currentXDelta);
+      let f = textNode.getBBox();
+      currentXDelta = f.x + f.width + 10;
+      rectNode.setAttribute("width", f.width + 4);
+      rectNode.setAttribute("height", f.height + 4);
+      rectNode.setAttribute("x", f.x - 2);
+      rectNode.setAttribute("y", f.y - 2);
+    }
   }
 }
 
