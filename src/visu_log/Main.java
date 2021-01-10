@@ -50,23 +50,6 @@ public class Main {
         revWalk.sort(RevSort.TOPO);
 
         List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).collect(Collectors.toList());
-//        revWalk.iterator().forEachRemaining(revCommit -> {
-//            System.out.println("from rev walk: " + revCommit.getId().getName());
-//        });
-
-//        master.sort((o1, o2) -> {
-//            try {
-//                RevCommit parsed1 = revWalk.parseCommit(o1.getId());
-//                RevCommit parsed2 = revWalk.parseCommit(o2.getId());
-//                if (revWalk.isMergedInto(parsed2, parsed1))
-//                    return -1;
-//                if (revWalk.isMergedInto(parsed1, parsed2))
-//                    return +1;
-//                return 0;
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        });
 
         //noinspection ConstantConditions
         if (true) {
@@ -98,19 +81,6 @@ public class Main {
 
 
         Column theParentColumn = Column.createNewList();
-
-//        for (int i = 0; i < branches.size(); i++) {
-//            Ref b = branches.get(i);
-//            HistoryEntry e = new HistoryEntry();
-//            e.column = new Column();
-//            e.column.branchId = i;
-//            e.commit = repository.parseCommit(b.getObjectId());
-//            ll.add(e);
-//        }
-
-//        for (int i = 1; i < ll.size(); i++) {
-//            ll.get(i-1).column.nextColumn = ll.get(i).column;
-//        }
 
         final int[] branchId = {0};
         for (int i = 0, masterSize = master.size(); i < masterSize; i++) {
