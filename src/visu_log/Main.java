@@ -153,11 +153,11 @@ public class Main {
                 .filter(e -> e.parent == revCommit)
                 .collect(Collectors.toList());
 
-        Map<RevCommit, List<HistoryEntry>> danglingParents = theParentColumn.getColumnStream()
+        Map<RevCommit, List<Column>> columnsWithDanglingParents = theParentColumn.getColumnStream()
                 .map(c -> c.entries.peekLast())
                 .filter(Objects::nonNull)
                 .filter(e -> Objects.nonNull(e.parent))
-                .collect(Collectors.groupingBy(e -> e.parent));
+                .collect(Collectors.groupingBy(e -> e.parent, Collectors.mapping(e -> e.column, Collectors.toCollection(ArrayList::new))));
 
         boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.getObjectId().equals(revCommit.getId()));
 
@@ -197,10 +197,10 @@ public class Main {
             Arrays.stream(revCommit.getParents())
                     .filter(p -> !usedParents.contains(p))
                     .filter(p -> revCommit.getParent(0) != p)
-                    .filter(danglingParents::containsKey)
+                    .filter(columnsWithDanglingParents::containsKey)
                     .forEach(parent -> {
-                        HistoryEntry dangling = danglingParents.get(parent).get(0);
-                        newEntryForParent(revCommit, parent, dangling.column, TypeOfBackReference.YES);
+                        Column dangling = columnsWithDanglingParents.get(parent).get(0);
+                        newEntryForParent(revCommit, parent, dangling, TypeOfBackReference.YES);
                         usedParents.add(parent);
                     });
         }
