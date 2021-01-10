@@ -57,6 +57,26 @@ public class TableRewriting {
         }
     }
 
+    static void removeEmptyColumns(List<List<HistoryEntry>> table) {
+        boolean[] hasElements = new boolean[table.get(0).size()];
+
+        for (List<HistoryEntry> row : table) {
+            for (int i = 0; i < row.size(); i++) {
+                HistoryEntry e = row.get(i);
+                if (e != null) {
+                    hasElements[i] = true;
+                }
+            }
+        }
+
+        for (List<HistoryEntry> row : table) {
+            for (int i = hasElements.length - 1; i >= 0; i--) {
+                if (!hasElements[i])
+                    row.remove(i);
+            }
+        }
+    }
+
     private static void fillDummy(List<HistoryEntry> row, HistoryEntry dummy) {
         int mainNode = findMainNode(row);
 

@@ -68,6 +68,7 @@ public class Main {
         List<List<HistoryEntry>> table = TableCreator.createTableFromDroppingColumns(columns);
         System.out.println("Rewrite secondary dropping");
         TableRewriting.rewriteSecondaryDropping(table);
+        TableRewriting.removeEmptyColumns(table);
 
         System.out.println("create simplified graph");
         SimpleTextBasedGraph.StringifiedGraph graph = SimpleTextBasedGraph.printGraph(branches, table);
