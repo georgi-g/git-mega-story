@@ -22,7 +22,7 @@ class SimpleTextBasedGraphTest {
         CommitStorage.newEntryBackReferenceWithoutParent(next, c2, 1);
         CommitStorage.newEntryForParent(initial, null, c, TypeOfBackReference.YES, 5);
 
-        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c, c2));
+        List<List<TableEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c, c2));
 
         SimpleTextBasedGraph.StringifiedGraph graph = SimpleTextBasedGraph.printGraph(entries);
         graph.rows.forEach(row -> System.out.println(row.branchesLine + " " + row.description));

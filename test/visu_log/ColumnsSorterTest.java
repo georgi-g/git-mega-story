@@ -22,7 +22,7 @@ class ColumnsSorterTest {
     }
 
     @SafeVarargs
-    private void addResults(List<List<HistoryEntry>>... tables) {
+    private void addResults(List<List<TableEntry>>... tables) {
         testHelper.addResults(tables);
     }
 

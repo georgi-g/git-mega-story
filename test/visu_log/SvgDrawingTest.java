@@ -22,7 +22,7 @@ class SvgDrawingTest {
     }
 
     @SafeVarargs
-    private void addResults(List<List<HistoryEntry>>... tables) {
+    private void addResults(List<List<TableEntry>>... tables) {
         testHelper.addResults(tables);
     }
 
@@ -39,7 +39,7 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(next, initial, c, TypeOfBackReference.YES, 1);
         CommitStorage.newEntryForParent(initial, null, c, TypeOfBackReference.YES, 5);
 
-        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c));
+        List<List<TableEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c));
 
         addResults(entries);
     }
@@ -66,7 +66,7 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c2, TypeOfBackReference.NO, 0);
         CommitStorage.newEntryForParent(featureCommit, fork, c2, TypeOfBackReference.YES, 1);
 
-        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
+        List<List<TableEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
 
         addResults(entries);
     }
@@ -101,7 +101,7 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(anotherFeature, fork, c3, TypeOfBackReference.NO, 1);
 
 
-        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
+        List<List<TableEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
 
         addResults(entries);
     }
@@ -114,7 +114,7 @@ class SvgDrawingTest {
         Commit masterCommit = TestCommit.createCommit("B");
         Commit masterMergeCommit = TestCommit.createCommit("M", masterCommit, featureCommit);
 
-        List<List<HistoryEntry>> entries1;
+        List<List<TableEntry>> entries1;
         {
             Column c1 = new Column();
             Column c2 = new Column();
@@ -130,7 +130,7 @@ class SvgDrawingTest {
             entries1 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3));
         }
 
-        List<List<HistoryEntry>> entries1_higher;
+        List<List<TableEntry>> entries1_higher;
         {
             Column c1 = new Column();
             Column c2 = new Column();
@@ -146,7 +146,7 @@ class SvgDrawingTest {
             entries1_higher = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3));
         }
 
-        List<List<HistoryEntry>> entries1_higher2;
+        List<List<TableEntry>> entries1_higher2;
         {
             Commit oneMore = TestCommit.createCommit("M");
 
@@ -165,7 +165,7 @@ class SvgDrawingTest {
             entries1_higher2 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3));
         }
 
-        List<List<HistoryEntry>> distance_1_WithIntermediateColumn;
+        List<List<TableEntry>> distance_1_WithIntermediateColumn;
         {
             Commit oneMoreMerge = TestCommit.createCommit("M", masterMergeCommit, featureCommit);
 
@@ -185,7 +185,7 @@ class SvgDrawingTest {
             distance_1_WithIntermediateColumn = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
         }
 
-        List<List<HistoryEntry>> distance_2_withIntermediateColumn;
+        List<List<TableEntry>> distance_2_withIntermediateColumn;
         {
             Commit oneMoreMerge = TestCommit.createCommit("M", masterMergeCommit, featureCommit);
 
@@ -205,7 +205,7 @@ class SvgDrawingTest {
             distance_2_withIntermediateColumn = TableCreator.createTableFromDroppingColumns(List.of(c1, new Column(), c3, new Column(), c2));
         }
 
-        List<List<HistoryEntry>> entries2;
+        List<List<TableEntry>> entries2;
         {
             Column c1 = new Column();
             Column c2 = new Column();
@@ -219,7 +219,7 @@ class SvgDrawingTest {
             entries2 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
         }
 
-        List<List<HistoryEntry>> entries3;
+        List<List<TableEntry>> entries3;
         {
             Column c1 = new Column();
             Column c2 = new Column();
@@ -234,7 +234,7 @@ class SvgDrawingTest {
             entries3 = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
         }
 
-        List<List<HistoryEntry>> entries4;
+        List<List<TableEntry>> entries4;
         {
             Commit additionalCommit = TestCommit.createCommit("F");
             Commit additionalCommit2 = TestCommit.createCommit("F");
@@ -291,10 +291,10 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(commitF1, null, cf1, TypeOfBackReference.YES, 1);
         CommitStorage.newEntryForParent(commitF2, null, cf2, TypeOfBackReference.YES, 1);
 
-        List<List<HistoryEntry>> entries1 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cf2, cm2));
-        List<List<HistoryEntry>> entries2 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cm2, cf2));
-        List<List<HistoryEntry>> entries3 = TableCreator.createTableFromDroppingColumns(List.of(cf2, cm1, cf1, cm2));
-        List<List<HistoryEntry>> entries4 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, new Column(), cm2, cf2));
+        List<List<TableEntry>> entries1 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cf2, cm2));
+        List<List<TableEntry>> entries2 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cm2, cf2));
+        List<List<TableEntry>> entries3 = TableCreator.createTableFromDroppingColumns(List.of(cf2, cm1, cf1, cm2));
+        List<List<TableEntry>> entries4 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, new Column(), cm2, cf2));
 
         addResults(entries1, entries2, entries3, entries4);
     }

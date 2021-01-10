@@ -4,13 +4,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class TableCreator {
-    static List<List<HistoryEntry>> createTableFromDroppingColumns(List<Column> columns) {
+    static List<List<TableEntry>> createTableFromDroppingColumns(List<Column> columns) {
         List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
 
-        List<List<HistoryEntry>> table = new ArrayList<>();
+        List<List<TableEntry>> table = new ArrayList<>();
         for (int currentLineNumber = 0; ; currentLineNumber++) {
             boolean commitsFound = false;
-            List<HistoryEntry> entries = new ArrayList<>();
+            List<TableEntry> entries = new ArrayList<>();
             for (Deque<HistoryEntry> c : droppingColumns) {
                 if (!c.isEmpty() && c.peek().commitId < currentLineNumber)
                     throw new RuntimeException("Wrong structure. Commit Ids in a column must increase");

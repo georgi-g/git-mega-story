@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SimpleTextBasedGraph {
-    static StringifiedGraph printGraph(List<List<HistoryEntry>> table) {
+    static StringifiedGraph printGraph(List<List<TableEntry>> table) {
 
         StringifiedGraph graph = new StringifiedGraph();
 
@@ -19,11 +19,11 @@ public class SimpleTextBasedGraph {
 
         //List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
 
-        for (List<HistoryEntry> entries : table) {
+        for (List<TableEntry> entries : table) {
             HistoryEntry someEntry = null;
             StringBuilder branchPic = new StringBuilder();
             for (int c = 0; c < entries.size(); c++) {
-                HistoryEntry historyEntry = entries.get(c);
+                HistoryEntry historyEntry = getOnlyHistoryEntry(entries.get(c));
 
                 if (historyEntry != null) {
                     someEntry = historyEntry;
@@ -44,7 +44,6 @@ public class SimpleTextBasedGraph {
                 branchPic.append("  ");
             }
 
-            HistoryEntry finalSomeEntry = someEntry;
             if (someEntry == null)
                 throw new RuntimeException("Commit did not Appear");
             String branchesLine = branchPic.toString();
@@ -58,6 +57,18 @@ public class SimpleTextBasedGraph {
         }
 
         return graph;
+    }
+
+    private static HistoryEntry getOnlyHistoryEntry(TableEntry entry) {
+        if (entry == null)
+            return null;
+
+        List<HistoryEntry> entries = entry.getEntries();
+
+        if (entries.size() != 1)
+            throw new RuntimeException("Stringified Graph cannot handle joined Entries. Found Entries: " + entries.size());
+
+        return entries.get(0);
     }
 
     static String getString(StringifiedGraph graph) {

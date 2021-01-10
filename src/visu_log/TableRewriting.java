@@ -1,7 +1,10 @@
 package visu_log;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TableRewriting {
     static void rewriteSecondaryDropping(List<? extends List<? extends TableEntry>> table) {
@@ -110,7 +113,10 @@ public class TableRewriting {
         boolean nextIsLabeled = false;
         boolean prevIsLabeled = false;
         for (int i = 0; i < next.size(); i++) {
-            rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
+            if (joinParentsCompression)
+                rowIsJoinable &= previous.get(i) == null || next.get(i) == null || previous.get(i).mayJoin(next.get(i));
+            else
+                rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
             nextIsLabeled |= next.get(i) != null && next.get(i).isLabeled();
             prevIsLabeled |= previous.get(i) != null && previous.get(i).isLabeled();
         }
@@ -118,23 +124,29 @@ public class TableRewriting {
         return rowIsJoinable && !(nextIsLabeled && prevIsLabeled);
     }
 
-    static void compressTable(List<List<HistoryEntry>> table) {
+    static boolean fullCompression = true;
+    static boolean joinParentsCompression = true;
+
+    static void compressTable(List<List<TableEntry>> table) {
         if (table.size() < 2) {
             return;
         }
 
         HistoryEntry dummyEntry = new HistoryEntry(null, Column.createNewList(), -1, null, null);
 
-        fillDummy(table.get(0), dummyEntry);
+        if (!fullCompression)
+            fillDummy(table.get(0), dummyEntry);
 
 
-        for (ListIterator<List<HistoryEntry>> it = table.listIterator(1); it.hasNext(); ) {
-            List<HistoryEntry> next = it.next();
+        for (ListIterator<List<TableEntry>> it = table.listIterator(1); it.hasNext(); ) {
+            List<TableEntry> next = it.next();
 
-            fillDummy(next, dummyEntry);
+            if (!fullCompression)
+                fillDummy(next, dummyEntry);
 
-            List<HistoryEntry> previous = null;
+            List<TableEntry> previous = null;
 
+            // find the minimum joinable column
             for (int idPrevious = it.previousIndex() - 1; idPrevious >= 0 && isJoinable(table.get(idPrevious), next); idPrevious--) {
                 previous = table.get(idPrevious);
             }
@@ -143,9 +155,14 @@ public class TableRewriting {
                 continue;
 
             for (int i = 0; i < next.size(); i++) {
-                HistoryEntry entry = next.get(i);
+                TableEntry entry = next.get(i);
+                TableEntry previousEntry = previous.get(i);
                 if (entry != null) {
-                    previous.set(i, entry);
+                    if (previousEntry == null) {
+                        previous.set(i, entry);
+                    } else {
+                        previous.set(i, joined(previousEntry, entry));
+                    }
                 }
             }
             it.remove();
@@ -153,6 +170,23 @@ public class TableRewriting {
 
 
         repairIds(table, dummyEntry);
+    }
+
+    private static TableEntry joined(TableEntry e1, TableEntry e2) {
+        return new MyTableEntry(Stream.concat(e1.getEntries().stream(), e2.getEntries().stream()).collect(Collectors.toList()));
+    }
+
+    private static class MyTableEntry implements TableEntry {
+        final List<HistoryEntry> entries;
+
+        private MyTableEntry(List<HistoryEntry> entries) {
+            this.entries = Collections.unmodifiableList(entries);
+        }
+
+        @Override
+        public List<HistoryEntry> getEntries() {
+            return entries;
+        }
     }
 
     public static void repairIds(List<? extends List<? extends TableEntry>> table) {

@@ -17,4 +17,13 @@ interface TableEntry {
     default boolean isLabeled() {
         return getEntries().stream().anyMatch(HistoryEntry::isLabeled);
     }
+
+    default boolean mayJoin(TableEntry candidate) {
+        boolean candidateHasParent = candidate.getEntries().stream().allMatch(e -> e.typeOfParent.hasParent());
+        boolean meHasParent = this.getEntries().stream().allMatch(e -> e.typeOfParent.hasParent());
+        if (!candidateHasParent && meHasParent)
+            return false;
+
+        return candidate.getEntries().get(0).parent == this.getEntries().get(0).parent;
+    }
 }

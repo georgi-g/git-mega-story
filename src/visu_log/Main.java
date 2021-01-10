@@ -71,7 +71,7 @@ public class Main {
         ColumnsSorter.sortSecondaryDroppingIntoTheDirectionOfTheirParent(columns);
 
         System.out.println("Create Table from dropping Columns");
-        List<List<HistoryEntry>> table = TableCreator.createTableFromDroppingColumns(columns);
+        List<List<TableEntry>> table = TableCreator.createTableFromDroppingColumns(columns);
         System.out.println("Rewrite secondary dropping");
         TableRewriting.rewriteSecondaryDropping(table);
         TableRewriting.removeEmptyColumns(table);

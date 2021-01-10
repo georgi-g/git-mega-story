@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class TestHelper {
-    static List<List<List<HistoryEntry>>> tables = new ArrayList<>();
+    static List<List<List<TableEntry>>> tables = new ArrayList<>();
 
     void showResults(Path tmpDir) {
         if (tables.isEmpty())
@@ -23,7 +23,7 @@ public class TestHelper {
 
         StringBuilder sb = new StringBuilder();
 
-        for (List<List<HistoryEntry>> table : tables) {
+        for (List<List<TableEntry>> table : tables) {
             TableRewriting.repairIds(table);
             String svg = new SvgDrawing(new DescriptionProvider()).createSvg(table);
             sb.append(svg);
@@ -43,7 +43,7 @@ public class TestHelper {
     }
 
     @SafeVarargs
-    final void addResults(List<List<HistoryEntry>>... tables) {
+    final void addResults(List<List<TableEntry>>... tables) {
         TestHelper.tables.addAll(Arrays.stream(tables).collect(Collectors.toList()));
     }
 
