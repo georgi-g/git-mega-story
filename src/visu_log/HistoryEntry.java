@@ -1,6 +1,7 @@
 package visu_log;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class HistoryEntry {
@@ -10,14 +11,14 @@ public class HistoryEntry {
     public final TypeOfBackReference backReference;
     public final TypeOfParent typeOfParent;
     public final List<HistoryEntry> joinedForSameParent = new ArrayList<>();
-    public final boolean isLabeled;
+    public final List<Branch> branches;
 
     public int commitId;
 
     HistoryEntry(Commit commit, Column column, int commitId, TypeOfBackReference backReference, TypeOfParent typeOfParent) {
         this.backReference = backReference;
         this.typeOfParent = typeOfParent;
-        this.isLabeled = false;
+        branches = Collections.emptyList();
         joinedForSameParent.add(this);
         this.commit = commit;
         this.column = column;
@@ -26,10 +27,10 @@ public class HistoryEntry {
         column.appendEntry(this);
     }
 
-    HistoryEntry(Commit commit, Column column, int commitId, Commit parent, TypeOfBackReference backReference, TypeOfParent typeOfParent, boolean isLabeled) {
+    HistoryEntry(Commit commit, Column column, int commitId, Commit parent, TypeOfBackReference backReference, TypeOfParent typeOfParent, List<Branch> branches) {
         this.backReference = backReference;
         this.typeOfParent = typeOfParent;
-        this.isLabeled = isLabeled;
+        this.branches = Collections.unmodifiableList(new ArrayList<>(branches));
         joinedForSameParent.add(this);
         this.commit = commit;
         this.column = column;
@@ -45,5 +46,9 @@ public class HistoryEntry {
         }
         // important to do not before peekLast
         column.appendEntry(this);
+    }
+
+    public boolean isLabeled() {
+        return !branches.isEmpty();
     }
 }

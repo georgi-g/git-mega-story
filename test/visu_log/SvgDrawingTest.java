@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 class SvgDrawingTest {
@@ -33,15 +34,14 @@ class SvgDrawingTest {
 
         Column c = new Column();
 
-        CommitStorage.newEntryForParent(next2, next, c, TypeOfBackReference.NO, 0, true);
-        CommitStorage.newEntryForParent(next, initial, c, TypeOfBackReference.YES, 1, false);
-        CommitStorage.newEntryForParent(initial, null, c, TypeOfBackReference.YES, 5, false);
+        CommitStorage.newEntryForParent(next2, next, c, TypeOfBackReference.NO, 0, Collections.singletonList(b));
+        CommitStorage.newEntryForParent(next, initial, c, TypeOfBackReference.YES, 1);
+        CommitStorage.newEntryForParent(initial, null, c, TypeOfBackReference.YES, 5);
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c));
         TableRewriting.repairIds(entries);
-        List<Branch> branches = List.of(b);
 
-        String svg = SvgDrawing.createSvg(entries, branches);
+        String svg = SvgDrawing.createSvg(entries);
 
         try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
             w.write(svg);
@@ -71,19 +71,18 @@ class SvgDrawingTest {
         Column c1 = new Column();
         Column c2 = new Column();
 
-        CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.NO, 0, true);
-        CommitStorage.newEntryForParent(masterCommit, fork, c1, TypeOfBackReference.YES, 2, false);
-        CommitStorage.newEntryForParent(fork, initial, c1, TypeOfBackReference.YES, 3, false);
-        CommitStorage.newEntryForParent(initial, null, c1, TypeOfBackReference.YES, 4, false);
+        CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.NO, 0, Collections.singletonList(b));
+        CommitStorage.newEntryForParent(masterCommit, fork, c1, TypeOfBackReference.YES, 2);
+        CommitStorage.newEntryForParent(fork, initial, c1, TypeOfBackReference.YES, 3);
+        CommitStorage.newEntryForParent(initial, null, c1, TypeOfBackReference.YES, 4);
 
-        CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c2, TypeOfBackReference.NO, 0, false);
-        CommitStorage.newEntryForParent(featureCommit, fork, c2, TypeOfBackReference.YES, 1, false);
+        CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c2, TypeOfBackReference.NO, 0);
+        CommitStorage.newEntryForParent(featureCommit, fork, c2, TypeOfBackReference.YES, 1);
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
         TableRewriting.repairIds(entries);
-        List<Branch> branches = List.of(b);
 
-        String svg = SvgDrawing.createSvg(entries, branches);
+        String svg = SvgDrawing.createSvg(entries);
 
         try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
             w.write(svg);

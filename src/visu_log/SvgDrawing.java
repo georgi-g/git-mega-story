@@ -42,7 +42,7 @@ public class SvgDrawing {
     };
 
 
-    static String createSvg(List<List<HistoryEntry>> table, List<Branch> branches) {
+    static String createSvg(List<List<HistoryEntry>> table) {
 
 
         List<String> result = new ArrayList<>();
@@ -96,7 +96,7 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            Commit commit = drawCommit(historyEntry, c, branches, color, maxColumnSoFar);
+                            Commit commit = drawCommit(historyEntry, c, color, maxColumnSoFar);
                             commits.add(commit.commit);
                             descriptions.add(commit.description);
                             break;
@@ -162,10 +162,9 @@ public class SvgDrawing {
 
     }
 
-    private static Commit drawCommit(HistoryEntry historyEntry, int columnPosition, List<Branch> branches, int color, int maximalFilledColumnSoFar) {
+    private static Commit drawCommit(HistoryEntry historyEntry, int columnPosition, int color, int maximalFilledColumnSoFar) {
         String commit;
-        List<String> branchesOnCommit = branches.stream()
-                .filter(b -> b.commmit == historyEntry.commit)
+        List<String> branchesOnCommit = historyEntry.branches.stream()
                 .map(b -> b.name)
                 .map(s -> s.replace("refs/heads/", ""))
                 .collect(Collectors.toList());

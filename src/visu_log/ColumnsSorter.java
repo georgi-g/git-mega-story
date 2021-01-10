@@ -20,7 +20,8 @@ public class ColumnsSorter {
             Commit revCommit = commits.get(i);
             if (i % 100 == 0)
                 System.out.println("Calculating entry: " + i + " of " + commits.size());
-            calculateEntryForCommit(revCommit, branches, theParentColumn, branchId, i);
+            List<Branch> commitsBranches = branches.stream().filter(b -> b.commmit == revCommit).collect(Collectors.toList());
+            calculateEntryForCommit(revCommit, commitsBranches, theParentColumn, branchId, i);
         }
 
 
@@ -39,7 +40,7 @@ public class ColumnsSorter {
         List<HistoryEntry> secondaryReferencingEntries = columnsWithDanglingParents.containsKey(revCommit) ? columnsWithDanglingParents.get(revCommit).get(false).stream().map(Column::getLastEntry).collect(Collectors.toList()) : new ArrayList<>();
         long numberOfMainReferencingEntries = mainReferencingEntries.size();
 
-        boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.commmit == revCommit);
+        boolean commitIsLabeledByABranch = !branches.isEmpty();
 
         // having here list of columngs with entries referencing me (either having a main node or not)
         // having here list of columngs with referencing one of my parents (either having a main node or not)
@@ -87,7 +88,7 @@ public class ColumnsSorter {
                 branchId[0]++;
             }
         }
-        CommitStorage.newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, commitIsLabeledByABranch);
+        CommitStorage.newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, branches);
 
 
         Column finalColumnForFirstParent = columnForFirstParent;
@@ -116,14 +117,14 @@ public class ColumnsSorter {
                         }
 
                         if (columnToUse.isPresent()) {
-                            CommitStorage.newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId, false);
+                            CommitStorage.newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId);
                             joined = true;
                         }
                     }
 
                     if (!joined) {
                         increase.set(true);
-                        CommitStorage.newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId, false);
+                        CommitStorage.newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
                     }
                 });
 

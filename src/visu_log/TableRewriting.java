@@ -88,8 +88,8 @@ public class TableRewriting {
         boolean prevIsLabeled = false;
         for (int i = 0; i < next.size(); i++) {
             rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
-            nextIsLabeled |= next.get(i) != null && next.get(i).isLabeled;
-            prevIsLabeled |= previous.get(i) != null && previous.get(i).isLabeled;
+            nextIsLabeled |= next.get(i) != null && next.get(i).isLabeled();
+            prevIsLabeled |= previous.get(i) != null && previous.get(i).isLabeled();
         }
 
         return rowIsJoinable && !(nextIsLabeled && prevIsLabeled);

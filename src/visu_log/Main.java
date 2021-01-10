@@ -84,7 +84,7 @@ public class Main {
         TableRewriting.compressTable(table);
 
         System.out.println("create create svg");
-        String svg = SvgDrawing.createSvg(table, branches);
+        String svg = SvgDrawing.createSvg(table);
 
         try (FileWriter b = new FileWriter(new File("mega-story.html"))) {
             b.write(svg);
