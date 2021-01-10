@@ -12,10 +12,22 @@ public class SvgDrawing {
     static int topOffset = 10;
     static int leftOffset = 10;
     static int commitWidth = 20;
-    static int commitHeight = 25;
-    static String l = "<path d=\"M%d,%d  L%d,%d\" stroke-width=\"2\" stroke=\"#dc4132\"/>";
-    static String circle = "<path d=\"M%d,%d C %d,%d,%d,%d, %d,%d\" stroke-width=\"2\" stroke=\"#dc4132\" fill=\"none\"/>";
-    static String circleAndLine = "<path d=\"%s\" stroke-width=\"2\" stroke=\"#dc4132\" fill=\"none\"/>";
+    static int commitHeight = 26;
+
+    static int circleDistanceX = 10;
+    static int circleDistanceY = 10;
+
+    // transitionHeight < splitPoint*2
+    // commitHeight - commitWidth < incommingFromChildTransitionHeight
+    static int incommingFromChildSplitPoint = 12;
+    static int incommingFromChildTransitionHeight = 13;
+
+
+    static String path = "\t<path d=\"%s\" stroke-width=\"1\" stroke=\"#2927f3\" fill=\"none\"/>";
+
+    static String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#79c753\" stroke=\"none\"/>";
+    static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#034f84\"/>";
+
 
     static void createSvg(ArrayList<List<Main.HistoryEntry>> table) {
 
@@ -43,7 +55,6 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#79c753\" stroke=\"none\"/>";
                             String commitDots = String.format(commit, leftOffset + c * commitWidth, historyEntry.commitId * commitHeight + topOffset);
                             result.add(commitDots);
                     }
@@ -64,10 +75,7 @@ public class SvgDrawing {
     }
 
 
-    static int circleDistanceX = commitWidth;
-    static int circleDistanceY = commitHeight;
-
-
+    @SuppressWarnings("UnnecessaryLocalVariable")
     private static String drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
@@ -81,12 +89,12 @@ public class SvgDrawing {
         String m = String.format("M %d, %d ", startX, startY);
 
         int myX = leftOffset + myColumn * commitWidth;
-        int myY = topOffset + theLine * commitHeight;
+        int myY = startY;
 
         String l1 = String.format("L %d, %d ", myX + circleDistanceX * Integer.signum(mainNodeColumn - myColumn), myY);
         String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, myY + circleDistanceY);
 
-        return String.format(circleAndLine, m + l1 + c2);
+        return String.format(path, m + l1 + c2);
 
     }
 
@@ -100,27 +108,83 @@ public class SvgDrawing {
 
                 int startX = leftOffset + columnPosition * commitWidth;
                 int startY = topOffset + startingId * commitHeight + (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
+                int parentX = leftOffset + parentColumn * commitWidth;
+                int parentY = topOffset + parentId * commitHeight;
+
 
                 if (parentColumn == columnPosition) {
+                    String m = String.format("M %d, %d ", startX, startY);
+                    m += String.format("L %d, %d ", parentX, parentY);
 
-                    return String.format(l, startX, startY, leftOffset + columnPosition * commitWidth, topOffset + parentId * commitHeight);
+                    return String.format(path, m);
                 } else {
 
+                    if (Math.abs(parentColumn - columnPosition) > 1) {
+                        String debugPoints = "";
 
-                    String m = String.format("M %d, %d ", startX, startY);
+                        String m = String.format("M %d, %d ", startX, startY);
+                        int parentIsRight = Integer.signum(parentColumn - columnPosition);
 
-                    int parentX = leftOffset + parentColumn * commitWidth;
-                    int parentY = topOffset + parentId * commitHeight;
+                        int pointSameColumnX = startX;
+                        int pointSameColumnY = parentY - commitHeight;
 
-                    int crossPointX = startX;
-                    int crossPointY = parentY;
+                        m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
 
-                    String l1 = String.format("L %d, %d ", crossPointX, crossPointY - circleDistanceY);
-                    int dx = Integer.signum(parentColumn - columnPosition) * circleDistanceY;
-                    String c2 = String.format("Q %d, %d, %d, %d ", crossPointX, crossPointY, crossPointX + dx, crossPointY);
-                    String l3 = String.format("L %d, %d ", parentX, parentY);
+                        int cp1X_Pre = startX;
+                        int cp1Y_Pre = parentY - incommingFromChildTransitionHeight;
 
-                    return String.format(circleAndLine, m + l1 + c2 + l3);
+                        //noinspection SuspiciousNameCombination because the height is put in x
+                        int theXDeviation = incommingFromChildTransitionHeight;
+                        int nextPointX = startX + theXDeviation * parentIsRight;
+                        int nextPointY = cp1Y_Pre;
+
+                        m += String.format("Q %d, %d, %d, %d ", cp1X_Pre, cp1Y_Pre, nextPointX, nextPointY);
+
+                        // connecting long distance line
+                        int nextPointX_ = parentX - (commitWidth * 2 - theXDeviation) * parentIsRight;
+                        int nextPointY_ = cp1Y_Pre;
+                        m += String.format("L %d, %d ", nextPointX_, nextPointY_);
+
+                        // go to parent
+                        int cp1X = parentX - commitWidth * parentIsRight;
+                        int cp1Y = parentY - incommingFromChildTransitionHeight;
+
+                        int splitPointX = parentX - commitWidth / 2 * parentIsRight;
+                        int splitPointY = parentY - incommingFromChildSplitPoint;
+
+                        m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
+                        m += String.format("T %d, %d ", parentX, parentY);
+
+                        //debugPoints += String.format(debugPoint, cp1X_Pre, cp1Y_Pre);
+                        //debugPoints += String.format(debugPoint, nextPointX, nextPointY);
+                        //debugPoints += String.format(debugPoint, nextPointX_, nextPointY_);
+                        //debugPoints += String.format(debugPoint, cp1X, cp1Y);
+                        //debugPoints += String.format(debugPoint, splitPointX, splitPointY);
+
+
+                        return String.format(path, m) + debugPoints;
+                    } else {
+                        String m = String.format("M %d, %d ", startX, startY);
+                        int parentIsRight = Integer.signum(parentColumn - columnPosition);
+
+                        int pointSameColumnX = startX;
+                        int pointSameColumnY = parentY - commitHeight;
+
+                        m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
+
+                        // to to parent
+                        int cp1X = startX;
+                        int cp1Y = parentY - incommingFromChildTransitionHeight;
+
+                        int splitPointX = parentX - commitWidth / 2 * parentIsRight;
+                        int splitPointY = parentY - incommingFromChildSplitPoint;
+
+                        m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
+                        m += String.format("T %d, %d ", parentX, parentY);
+
+                        return String.format(path, m);
+                    }
+
                 }
             }
         }
