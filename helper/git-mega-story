@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#put this script into your PATH and adjust the path to mega-history.jar, then you'll be able to use 'git mega-story'
+
+set -e
+
+REPO_DIR=$(git rev-parse --show-toplevel)
+GIT_DIR=$(git rev-parse --git-dir)
+
+cd $GIT_DIR
+
+java -jar /path/to/project/MegaStory/out/artifacts/mega_history/mega-history.jar $REPO_DIR
+
+git web--browse mega-story.html
