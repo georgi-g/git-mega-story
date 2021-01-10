@@ -268,6 +268,23 @@ public class Main {
                 }
             }
         }
+
+        boolean[] parentIsPresent = new boolean[table.get(0).size()];
+        for (List<HistoryEntry> row : table) {
+            for (int i = 0; i < row.size(); i++) {
+                HistoryEntry e = row.get(i);
+                if (e != null) {
+                    if (!parentIsPresent[i]) {
+                        // delete the unused back reference
+                        if (e.typeOfParent == TypeOfParent.NONE && e.backReference == TypeOfBackReference.YES) {
+                            row.set(i, null);
+                        }
+                    }
+
+                    parentIsPresent[i] = e.typeOfParent.hasParent;
+                }
+            }
+        }
     }
 
     private static int findMainNode(List<Main.HistoryEntry> row) {
@@ -357,20 +374,22 @@ public class Main {
     }
 
     public enum TypeOfParent {
-        SINGLE_PARENT("┿", "┯", true),
-        INITIAL("┷", "╸", true),
-        MERGE_STH("╭", "╭", false),
-        MERGE_MAIN("┣", "┏", true),
-        NONE("╰", "x", false);
+        SINGLE_PARENT("┿", "┯", true, true),
+        INITIAL("┷", "╸", true, false),
+        MERGE_STH("╭", "╭", false, true),
+        MERGE_MAIN("┣", "┏", true, true),
+        NONE("╰", "x", false, false);
 
         private final String withBackReference;
         private final String withoutBackReference;
         private final boolean isMainNode;
+        private final boolean hasParent;
 
-        TypeOfParent(String withBackReference, String withoutBackReference, boolean isMainNode) {
+        TypeOfParent(String withBackReference, String withoutBackReference, boolean isMainNode, boolean hasParent) {
             this.withBackReference = withBackReference;
             this.withoutBackReference = withoutBackReference;
             this.isMainNode = isMainNode;
+            this.hasParent = hasParent;
         }
 
         boolean isMainNode() {
