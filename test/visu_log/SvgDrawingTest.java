@@ -1,5 +1,6 @@
 package visu_log;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -9,14 +10,21 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class SvgDrawingTest {
 
     @TempDir
-    Path tmpDir;
+    static Path tmpDir;
+
+    @AfterAll
+    static void afterAll() {
+        showResults();
+    }
 
     @Test
     void createSvgThreeCommits() {
@@ -33,7 +41,7 @@ class SvgDrawingTest {
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c));
 
-        showResults(entries);
+        addResults(entries);
     }
 
     @Test
@@ -60,7 +68,7 @@ class SvgDrawingTest {
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
 
-        showResults(entries);
+        addResults(entries);
     }
 
     @Test
@@ -95,7 +103,7 @@ class SvgDrawingTest {
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
 
-        showResults(entries);
+        addResults(entries);
     }
 
     @Test
@@ -253,7 +261,7 @@ class SvgDrawingTest {
             entries4 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3, c4));
         }
 
-        showResults(entries2, entries3, entries4, entries1, entries1_higher, entries1_higher2, distance_1_WithIntermediateColumn, distance_2_withIntermediateColumn);
+        addResults(entries2, entries3, entries4, entries1, entries1_higher, entries1_higher2, distance_1_WithIntermediateColumn, distance_2_withIntermediateColumn);
     }
 
     @Test
@@ -283,13 +291,22 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(commitF1, null, cf1, TypeOfBackReference.YES, 1);
         CommitStorage.newEntryForParent(commitF2, null, cf2, TypeOfBackReference.YES, 1);
 
-        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cf2, cm2));
+        List<List<HistoryEntry>> entries1 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cf2, cm2));
+        List<List<HistoryEntry>> entries2 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cm2, cf2));
+        List<List<HistoryEntry>> entries3 = TableCreator.createTableFromDroppingColumns(List.of(cf2, cm1, cf1, cm2));
+        List<List<HistoryEntry>> entries4 = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, new Column(), cm2, cf2));
 
-        showResults(entries);
+        addResults(entries1, entries2, entries3, entries4);
     }
 
+    static List<List<List<HistoryEntry>>> tables = new ArrayList<>();
+
     @SafeVarargs
-    private void showResults(List<List<HistoryEntry>>... tables) {
+    private void addResults(List<List<HistoryEntry>>... tables) {
+        SvgDrawingTest.tables.addAll(Arrays.stream(tables).collect(Collectors.toList()));
+    }
+
+    private static void showResults() {
         Path output = tmpDir.resolve("out.html");
         System.out.println(output.toUri());
 
