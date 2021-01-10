@@ -21,8 +21,8 @@ public class SvgDrawing {
 
     // transitionHeight < splitPoint*2
     // commitHeight - commitWidth < incommingFromChildTransitionHeight
-    static int incommingFromChildSplitPoint = 12;
-    static int incommingFromChildTransitionHeight = 13;
+    static int incomingFromChildSplitPoint = 12;
+    static int incomingFromChildTransitionHeight = 13;
 
 
     static String path = "\t<path d=\"%s\" stroke-width=\"%d\" fill=\"none\" stroke=\"#%06x\"/>";
@@ -270,10 +270,10 @@ public class SvgDrawing {
                 m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
 
                 int cp1X_Pre = startX;
-                int cp1Y_Pre = parentY - incommingFromChildTransitionHeight;
+                int cp1Y_Pre = parentY - incomingFromChildTransitionHeight;
 
                 //noinspection SuspiciousNameCombination because the height is put in x
-                int theXDeviation = incommingFromChildTransitionHeight;
+                int theXDeviation = incomingFromChildTransitionHeight;
                 int nextPointX = startX + theXDeviation * parentIsRight;
                 int nextPointY = cp1Y_Pre;
 
@@ -286,10 +286,10 @@ public class SvgDrawing {
 
                 // go to parent
                 int cp1X = parentX - commitWidth * parentIsRight;
-                int cp1Y = parentY - incommingFromChildTransitionHeight;
+                int cp1Y = parentY - incomingFromChildTransitionHeight;
 
                 int splitPointX = parentX - commitWidth / 2 * parentIsRight;
-                int splitPointY = parentY - incommingFromChildSplitPoint;
+                int splitPointY = parentY - incomingFromChildSplitPoint;
 
                 m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
                 m += String.format("T %d, %d ", parentX, parentY);
@@ -315,10 +315,10 @@ public class SvgDrawing {
 
                 // go to parent
                 int cp1X = startX;
-                int cp1Y = parentY - incommingFromChildTransitionHeight;
+                int cp1Y = parentY - incomingFromChildTransitionHeight;
 
                 int splitPointX = parentX - commitWidth / 2 * parentIsRight;
-                int splitPointY = parentY - incommingFromChildSplitPoint;
+                int splitPointY = parentY - incomingFromChildSplitPoint;
 
                 m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
                 m += String.format("T %d, %d ", parentX, parentY);
