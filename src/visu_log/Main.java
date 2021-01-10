@@ -58,42 +58,12 @@ public class Main {
         master.sort(new CommitComparator(revWalk, false));
 
         System.out.println("Log fetched");
-//        master.forEach(revCommit ->
-//        {
-//            System.out.println(revCommit.getId());
-//            System.out.println(revCommit.getName());
-//            System.out.println(revCommit.getId().abbreviate(8).name());
-//            System.out.println(revCommit.getId().getName());
-//            System.out.println(revCommit.getShortMessage());
-//        });
 
 
-        master.forEach(revCommit -> {
-            System.out.println("Commit Name " + revCommit.getId().getName());
-            for (RevCommit parent : revCommit.getParents()) {
-                System.out.println("- Parent Name " + parent.getId().getName());
-            }
-            //noinspection unused
-            PersonIdent authorIdent = revCommit.getAuthorIdent();
-//            System.out.println("author " + authorIdent.getName());
-//            System.out.println("message " + revCommit.getShortMessage());
-//            System.out.println("fullMessage " + revCommit.getFullMessage());
-        });
+        printAllCommits(master);
 
-
-        Column theParentColumn = Column.createNewList();
-
-        System.out.println("Calculate Entries from all Commits");
-        final int[] branchId = {0};
-        for (int i = 0; i < master.size(); i++) {
-            RevCommit revCommit = master.get(i);
-            if (i % 100 == 0)
-                System.out.println("Calculating entry: " + i + " of " + master.size());
-            calculateEntryForCommit(revCommit, branches, theParentColumn, branchId, i);
-        }
-
-
-        List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
+        System.out.println("Sort Commits into Columns");
+        List<Column> columns = sortCommitsIntoColumns(branches, master);
 
         System.out.println("Create Table from dropping Columns");
         ArrayList<List<HistoryEntry>> table = createTableFromDroppingColumns(columns);
@@ -121,6 +91,38 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static List<Column> sortCommitsIntoColumns(List<Ref> branches, List<RevCommit> commits) {
+        Column theParentColumn = Column.createNewList();
+
+        final int[] branchId = {0};
+        for (int i = 0; i < commits.size(); i++) {
+            RevCommit revCommit = commits.get(i);
+            if (i % 100 == 0)
+                System.out.println("Calculating entry: " + i + " of " + commits.size());
+            calculateEntryForCommit(revCommit, branches, theParentColumn, branchId, i);
+        }
+
+
+        return theParentColumn.getColumnStream().collect(Collectors.toList());
+    }
+
+    private static void printAllCommits(List<RevCommit> commits) {
+        commits.forEach(revCommit -> {
+            System.out.println("Commit Name " + revCommit.getId().getName());
+//            System.out.println(revCommit.getId());
+//            System.out.println(revCommit.getId().abbreviate(8).name());
+//            System.out.println(revCommit.getName());
+            for (RevCommit parent : revCommit.getParents()) {
+                System.out.println("- Parent Name " + parent.getId().getName());
+            }
+            //noinspection unused
+            PersonIdent authorIdent = revCommit.getAuthorIdent();
+//            System.out.println("author " + authorIdent.getName());
+//            System.out.println("message " + revCommit.getShortMessage());
+//            System.out.println("fullMessage " + revCommit.getFullMessage());
+        });
     }
 
     static boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
@@ -260,38 +262,40 @@ public class Main {
     }
 
     private static void rewriteSecondaryDropping(ArrayList<List<HistoryEntry>> table) {
-        Integer[] moves = new Integer[table.get(0).size()];
+        Integer[] moveAdvises = new Integer[table.get(0).size()];
 
         for (int lineId = table.size() - 1; lineId >= 0; lineId--) {
             List<HistoryEntry> row = table.get(lineId);
             int mainNodeColumn = findMainNode(row);
 
             for (int i = 0; i < row.size(); i++) {
-                // clear if something is in there
-                if (moves[i] != null && row.get(moves[i]) != null) {
-                    moves[i] = null;
+                // clear advice if something is at the target
+                if (moveAdvises[i] != null && row.get(moveAdvises[i]) != null) {
+                    moveAdvises[i] = null;
                 }
-                // move else
-                else if (moves[i] != null && row.get(i) != null) {
+                // move merge references from i to moveAdvises[i]
+                else if (moveAdvises[i] != null && row.get(i) != null) {
                     // move if it is merge_sth
                     if (row.get(i).typeOfParent == TypeOfParent.MERGE_STH) {
-                        row.set(moves[i], row.get(i));
+                        row.set(moveAdvises[i], row.get(i));
                         row.set(i, null);
                     }
-                    // everything else blocks other moves
+                    // everything else cancels the advice
                     else {
-                        moves[i] = null;
+                        moveAdvises[i] = null;
                     }
                 }
             }
 
+            // create advice: backreferences indicate the source, mainNode indicates the target of the suggested move
             for (int i = 0; i < row.size(); i++) {
                 if (i != mainNodeColumn && row.get(i) != null && row.get(i).backReference == TypeOfBackReference.YES) {
-                    moves[i] = mainNodeColumn;
+                    moveAdvises[i] = mainNodeColumn;
                 }
             }
         }
 
+        // find and delete the back references that arent used any more
         boolean[] parentIsPresent = new boolean[table.get(0).size()];
         for (List<HistoryEntry> row : table) {
             for (int i = 0; i < row.size(); i++) {
