@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.ListIterator;
 
 public class TableRewriting {
-    static void rewriteSecondaryDropping(List<List<HistoryEntry>> table) {
+    static void rewriteSecondaryDropping(List<? extends List<? extends TableEntry>> table) {
         Integer[] moveAdvises = new Integer[table.get(0).size()];
 
         for (int lineId = table.size() - 1; lineId >= 0; lineId--) {
-            List<HistoryEntry> row = table.get(lineId);
+            List<? extends TableEntry> row = table.get(lineId);
             int mainNodeColumn = findMainNode(row);
 
             for (int i = 0; i < row.size(); i++) {
@@ -19,9 +19,8 @@ public class TableRewriting {
                 // move merge references from i to moveAdvises[i]
                 else if (moveAdvises[i] != null && row.get(i) != null) {
                     // move if it is merge_sth
-                    if (row.get(i).typeOfParent == TypeOfParent.MERGE_STH) {
-                        row.set(moveAdvises[i], row.get(i));
-                        row.set(i, null);
+                    if (row.get(i).getEntries().stream().allMatch(e -> e.typeOfParent == TypeOfParent.MERGE_STH)) {
+                        moveElement(row, i, moveAdvises[i]);
                     }
                     // everything else cancels the advice
                     else {
@@ -32,7 +31,7 @@ public class TableRewriting {
 
             // create advice: backreferences indicate the source, mainNode indicates the target of the suggested move
             for (int i = 0; i < row.size(); i++) {
-                if (i != mainNodeColumn && row.get(i) != null && row.get(i).backReference == TypeOfBackReference.YES) {
+                if (i != mainNodeColumn && row.get(i) != null && row.get(i).getEntries().stream().allMatch(e -> e.backReference == TypeOfBackReference.YES)) {
                     moveAdvises[i] = mainNodeColumn;
                 }
             }
@@ -40,36 +39,41 @@ public class TableRewriting {
 
         // find and delete the back references that arent used any more
         boolean[] parentIsPresent = new boolean[table.get(0).size()];
-        for (List<HistoryEntry> row : table) {
+        for (List<? extends TableEntry> row : table) {
             for (int i = 0; i < row.size(); i++) {
-                HistoryEntry e = row.get(i);
-                if (e != null) {
+                TableEntry te = row.get(i);
+                if (te != null) {
                     if (!parentIsPresent[i]) {
                         // delete the unused back reference
-                        if (e.typeOfParent == TypeOfParent.NONE && e.backReference == TypeOfBackReference.YES) {
+                        if (te.getEntries().stream().allMatch(e -> e.typeOfParent == TypeOfParent.NONE && e.backReference == TypeOfBackReference.YES)) {
                             row.set(i, null);
                         }
                     }
 
-                    parentIsPresent[i] = e.typeOfParent.hasParent();
+                    parentIsPresent[i] = te.getEntries().stream().anyMatch(e -> e.typeOfParent.hasParent());
                 }
             }
         }
     }
 
-    static void removeEmptyColumns(List<List<HistoryEntry>> table) {
+    private static <T extends TableEntry> void moveElement(List<T> row, int from, int to) {
+        row.set(to, row.get(from));
+        row.set(from, null);
+    }
+
+    static void removeEmptyColumns(List<? extends List<? extends TableEntry>> table) {
         boolean[] hasElements = new boolean[table.get(0).size()];
 
-        for (List<HistoryEntry> row : table) {
+        for (List<? extends TableEntry> row : table) {
             for (int i = 0; i < row.size(); i++) {
-                HistoryEntry e = row.get(i);
+                TableEntry e = row.get(i);
                 if (e != null) {
                     hasElements[i] = true;
                 }
             }
         }
 
-        for (List<HistoryEntry> row : table) {
+        for (List<? extends TableEntry> row : table) {
             for (int i = hasElements.length - 1; i >= 0; i--) {
                 if (!hasElements[i])
                     row.remove(i);
@@ -77,7 +81,7 @@ public class TableRewriting {
         }
     }
 
-    private static void fillDummy(List<HistoryEntry> row, HistoryEntry dummy) {
+    private static <T extends TableEntry> void fillDummy(List<T> row, T dummy) {
         int mainNode = findMainNode(row);
 
         boolean fill = false;
@@ -101,7 +105,7 @@ public class TableRewriting {
         }
     }
 
-    private static boolean isJoinable(List<HistoryEntry> previous, List<HistoryEntry> next) {
+    private static boolean isJoinable(List<? extends TableEntry> previous, List<? extends TableEntry> next) {
         boolean rowIsJoinable = true;
         boolean nextIsLabeled = false;
         boolean prevIsLabeled = false;
@@ -151,27 +155,29 @@ public class TableRewriting {
         repairIds(table, dummyEntry);
     }
 
-    public static void repairIds(List<List<HistoryEntry>> table) {
+    public static void repairIds(List<? extends List<? extends TableEntry>> table) {
         repairIds(table, null);
     }
 
-    private static void repairIds(List<List<HistoryEntry>> table, HistoryEntry dummyEntry) {
+    private static void repairIds(List<? extends List<? extends TableEntry>> table, TableEntry dummyEntry) {
         for (int row = 0; row < table.size(); row++) {
-            List<HistoryEntry> rowEntries = table.get(row);
+            List<? extends TableEntry> rowEntries = table.get(row);
             for (int i = 0; i < rowEntries.size(); i++) {
-                HistoryEntry e = rowEntries.get(i);
+                TableEntry e = rowEntries.get(i);
                 if (e == dummyEntry) {
                     rowEntries.set(i, null);
-                } else if (e != null)
-                    e.commitId = row;
+                } else if (e != null) {
+                    int finalRow = row;
+                    e.getEntries().forEach(ee -> ee.commitId = finalRow);
+                }
             }
         }
     }
 
-    private static int findMainNode(List<HistoryEntry> row) {
+    private static int findMainNode(List<? extends TableEntry> row) {
         for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
-            HistoryEntry parent = row.get(parentColumn);
-            if (parent != null && parent.typeOfParent.isMainNode()) {
+            TableEntry parent = row.get(parentColumn);
+            if (parent != null && parent.isMainNode()) {
                 return parentColumn;
             }
         }
