@@ -105,16 +105,17 @@ public class SvgDrawing {
                             break;
                         }
                         case MERGE_STH:
-                            Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table);
-
                             Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
+
+
                             if (path.isPresent()) {
+                                Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, path.get().parentId, path.get().parentColumn);
                                 result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLineMerge));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             } else {
+                                Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, historyEntry.commitId + 2, historyEntry.commitId);
                                 result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, colorLineMerge));
-                                maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             }
                             break;
@@ -166,7 +167,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, List<List<HistoryEntry>> table) {
+    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, List<List<HistoryEntry>> table, int parentId, int parentColumn) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -177,6 +178,11 @@ public class SvgDrawing {
 
         int startX = leftOffset + mainNodeColumn * commitWidth;
         int startY = topOffset + theLine * commitHeight;
+
+        int endY = topOffset + (theLine + 1) * commitHeight;
+        if (parentId <= theLine + 1 && myColumn != parentColumn) {
+            endY = topOffset + theLine * commitHeight + circleDistanceY;
+        }
 
         String m = String.format("M %d, %d ", startX, startY);
 
@@ -192,7 +198,6 @@ public class SvgDrawing {
             String c1 = String.format("Q %d, %d, %d, %d ", mX1, mergeTransY, mergeTransX, mergeTransY);
 
             int endX = leftOffset + myColumn * commitWidth;
-            int endY = topOffset + (theLine + 1) * commitHeight;
 
             int myX = endX - (commitWidth * myColumnIsRight);
             int myY = mergeTransY;
@@ -201,10 +206,9 @@ public class SvgDrawing {
             String c2 = String.format("Q %d, %d, %d, %d ", endX, myY, endX, endY);
             mm += c1 + l1 + c2;
         } else {
-            int endY = topOffset + (theLine + 1) * commitHeight;
 
             int myX = leftOffset + myColumn * commitWidth;
-            int myY = endY - commitHeight * 3 / 4;
+            int myY = startY + commitHeight / 4;
 
             String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, endY);
             mm += c2;
@@ -370,6 +374,7 @@ public class SvgDrawing {
         path.startPoint = startPoint;
         path.path = m;
         path.parentColumn = parentColumn;
+        path.parentId = parentId;
         return path;
     }
 
@@ -377,6 +382,7 @@ public class SvgDrawing {
         String startPoint;
         String path;
         int parentColumn;
+        int parentId;
     }
 
     private static class Commit {

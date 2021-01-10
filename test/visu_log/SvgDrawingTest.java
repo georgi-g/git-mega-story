@@ -122,7 +122,7 @@ class SvgDrawingTest {
             entries1 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3));
         }
 
-        List<List<HistoryEntry>> entries1_1;
+        List<List<HistoryEntry>> entries1_higher;
         {
             Column c1 = new Column();
             Column c2 = new Column();
@@ -132,14 +132,16 @@ class SvgDrawingTest {
             CommitStorage.newEntryForParent(masterCommit, null, c1, TypeOfBackReference.YES, 2);
             CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c3, TypeOfBackReference.NO, 1);
             CommitStorage.newEntryForParent(featureCommit2, featureCommit, c2, TypeOfBackReference.NO, 1);
-            CommitStorage.newEntryForParent(featureCommit, null, c2, TypeOfBackReference.NO, 2);
+            CommitStorage.newEntryForParent(featureCommit, null, c2, TypeOfBackReference.NO, 3);
 
 
-            entries1_1 = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
+            entries1_higher = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3));
         }
 
-        List<List<HistoryEntry>> entries1_2;
+        List<List<HistoryEntry>> entries1_higher2;
         {
+            Commit oneMore = TestCommit.createCommit("M");
+
             Column c1 = new Column();
             Column c2 = new Column();
             Column c3 = new Column();
@@ -148,10 +150,51 @@ class SvgDrawingTest {
             CommitStorage.newEntryForParent(masterCommit, null, c1, TypeOfBackReference.YES, 2);
             CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c3, TypeOfBackReference.NO, 1);
             CommitStorage.newEntryForParent(featureCommit2, featureCommit, c2, TypeOfBackReference.NO, 1);
+            CommitStorage.newEntryForParent(oneMore, null, c1, TypeOfBackReference.NO, 3);
+            CommitStorage.newEntryForParent(featureCommit, null, c2, TypeOfBackReference.NO, 4);
+
+
+            entries1_higher2 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3));
+        }
+
+        List<List<HistoryEntry>> distance_1_WithIntermediateColumn;
+        {
+            Commit oneMoreMerge = TestCommit.createCommit("M", masterMergeCommit, featureCommit);
+
+            Column c1 = new Column();
+            Column c2 = new Column();
+            Column c3 = new Column();
+
+            CommitStorage.newEntryForParent(oneMoreMerge, masterMergeCommit, c1, TypeOfBackReference.NO, 0);
+            CommitStorage.newEntryForParent(oneMoreMerge, featureCommit, c3, TypeOfBackReference.NO, 0);
+            CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.NO, 1);
+            CommitStorage.newEntryForParent(masterCommit, null, c1, TypeOfBackReference.YES, 2);
+            CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c3, TypeOfBackReference.NO, 1);
+            CommitStorage.newEntryForParent(featureCommit2, featureCommit, c2, TypeOfBackReference.NO, 1);
             CommitStorage.newEntryForParent(featureCommit, null, c2, TypeOfBackReference.NO, 2);
 
 
-            entries1_2 = TableCreator.createTableFromDroppingColumns(List.of(c1, new Column(), c3, new Column(), c2));
+            distance_1_WithIntermediateColumn = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
+        }
+
+        List<List<HistoryEntry>> distance_2_withIntermediateColumn;
+        {
+            Commit oneMoreMerge = TestCommit.createCommit("M", masterMergeCommit, featureCommit);
+
+            Column c1 = new Column();
+            Column c2 = new Column();
+            Column c3 = new Column();
+
+            CommitStorage.newEntryForParent(oneMoreMerge, masterMergeCommit, c1, TypeOfBackReference.NO, 0);
+            CommitStorage.newEntryForParent(oneMoreMerge, featureCommit, c3, TypeOfBackReference.NO, 0);
+            CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.NO, 1);
+            CommitStorage.newEntryForParent(masterCommit, null, c1, TypeOfBackReference.YES, 2);
+            CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c3, TypeOfBackReference.NO, 1);
+            CommitStorage.newEntryForParent(featureCommit2, featureCommit, c2, TypeOfBackReference.NO, 1);
+            CommitStorage.newEntryForParent(featureCommit, null, c2, TypeOfBackReference.NO, 2);
+
+
+            distance_2_withIntermediateColumn = TableCreator.createTableFromDroppingColumns(List.of(c1, new Column(), c3, new Column(), c2));
         }
 
         List<List<HistoryEntry>> entries2;
@@ -210,7 +253,7 @@ class SvgDrawingTest {
             entries4 = TableCreator.createTableFromDroppingColumns(List.of(c1, c2, c3, c4));
         }
 
-        showResults(entries1, entries1_1, entries1_2, entries2, entries3, entries4);
+        showResults(entries2, entries3, entries4, entries1, entries1_higher, entries1_higher2, distance_1_WithIntermediateColumn, distance_2_withIntermediateColumn);
     }
 
     @Test
