@@ -40,9 +40,23 @@ class NiceReplacerTest {
     }
 
     @Test
+    void turnMergePoints() {
+        assertEquals(" ╰ ┣ ╮  ╰ │ │  ", replacer.turnMergePoints(" ╰ ┣ ╭  ╰ │ │  "));
+        assertEquals(" ╰   ╭  ╰ │ │  ", replacer.turnMergePoints(" ╰   ╭  ╰ │ │  "));
+        assertEquals(" ╰ ┿ ╮  ╰ │ │  ", replacer.turnMergePoints(" ╰ ┿ ╭  ╰ │ │  "));
+    }
+
+    @Test
     void makeDoublesidedMerges() {
         assertEquals(" ╰ ╋ ╮  ╯ │ │  ", replacer.makeDoublesidedMerges(" ╰ ┣ ╮  ╯ │ │  "));
         assertEquals(" ╰ ╋ ╮  ╰ │ │  ", replacer.makeDoublesidedMerges(" ╰ ┣ ╮  ╰ │ │  "));
         assertEquals("   ┣ ╮  ╰ │ │  ", replacer.makeDoublesidedMerges("   ┣ ╮  ╰ │ │  "));
+    }
+
+    @Test
+    void makeDoublesidedMerges2() {
+        assertEquals(" ╰ ┯ ╮  ╯ │ │  ", replacer.makeDoublesidedMerges2(" ╰ ┏ ╮  ╯ │ │  "));
+        assertEquals(" ╰ ┯ ╮  ╰ │ │  ", replacer.makeDoublesidedMerges2(" ╰ ┏ ╮  ╰ │ │  "));
+        assertEquals("   ┏ ╮  ╰ │ │  ", replacer.makeDoublesidedMerges2("   ┏ ╮  ╰ │ │  "));
     }
 }

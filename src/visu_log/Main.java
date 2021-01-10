@@ -142,15 +142,21 @@ public class Main {
                     .filter(e -> e.parent == revCommit)
                     .collect(Collectors.toList());
 
-            boolean mayReuseBranchForMultiParentCommit = true;
-            boolean reuseDroppingColumn = true;
+            Map<RevCommit, List<HistoryEntry>> danglingParents = theParentColumn.getColumnStream()
+                    .map(c -> c.entries.peekLast())
+                    .filter(Objects::nonNull)
+                    .filter(e -> Objects.nonNull(e.parent))
+                    .collect(Collectors.groupingBy(e -> e.parent));
+
+            boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
+            boolean joinDroppingColumns = true;
 
             final boolean[] alreadyReused = {false};
             Set<RevCommit> usedParents = new HashSet<>();
             referencingEntries
                     .forEach(h -> {
                         //noinspection ConstantConditions
-                        boolean reuseColumn = !alreadyReused[0] && (revCommit.getParentCount() <= 1 || mayReuseBranchForMultiParentCommit);
+                        boolean reuseColumn = !alreadyReused[0] && (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
                         // here we have a column having history entries waiting for this commit
                         if (reuseColumn) {
                             //    newEntry(ll, revCommit, h.column);
@@ -164,6 +170,20 @@ public class Main {
                             newEntryBackReferenceWithoutParent(ll, revCommit, h.column);
                         }
                     });
+
+            //noinspection ConstantConditions
+            if (joinDroppingColumns) {
+                Arrays.stream(revCommit.getParents())
+                        .filter(p -> !usedParents.contains(p))
+                        .filter(p -> revCommit.getParent(0) != p)
+                        .filter(danglingParents::containsKey)
+                        .forEach(parent -> {
+                            HistoryEntry dangling = danglingParents.get(parent).get(0);
+                            newEntryForParent(ll, revCommit, parent, dangling.column, TypeOfBackReference.YES);
+                            usedParents.add(parent);
+                        });
+            }
+
 
             // here we create new column for each entry, so no history entries in column waiting for it
             if (revCommit.getParentCount() > 0) {
@@ -214,6 +234,7 @@ public class Main {
                         brancPic.append(" ");
                     }
                 }
+                brancPic.append("  ");
             }
             if (!commitDidAppear)
                 throw new RuntimeException("Commit did not Appear");
@@ -271,7 +292,7 @@ public class Main {
     private enum TypeOfParent {
         SINGLE_PARENT("┿", "┯"),
         INITIAL("┷", "╸"),
-        MERGE_STH("y", "╮"),
+        MERGE_STH("╭", "╮"),
         MERGE_MAIN("┣", "┏"),
         NONE("╰", "x");
 
