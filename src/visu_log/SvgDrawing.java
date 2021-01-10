@@ -182,8 +182,8 @@ public class SvgDrawing {
             StringBuilder sb = new StringBuilder("<g class=\"commit_branches\">");
             for (String branchName : branchesOnCommit) {
                 sb.append("<g>")
-                        .append(String.format(rect, startX + 20, startY, 200, 200))
-                        .append(String.format(label, startX + 20, startY, branchName))
+                        .append(String.format(rect, startX + 60, startY, 200, 200))
+                        .append(String.format(label, startX + 60, startY, branchName))
                         .append("</g>");
             }
             sb.append("</g>");

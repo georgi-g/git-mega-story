@@ -119,7 +119,7 @@ public class Main {
         });
 
 
-        Column theParentColumn = new Column();
+        Column theParentColumn = Column.createNewList();
 
 //        for (int i = 0; i < branches.size(); i++) {
 //            Ref b = branches.get(i);
@@ -225,10 +225,10 @@ public class Main {
                     increase = true;
                     if (parent == revCommit.getParent(0)) {
                         Column column = firstColumnWithAPureBackreference.get();
-                        if (column == null) {
-                            newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
-                        } else {
+                        if (column != null && needNewBranchBecauseLabeled) {
                             newEntryForParent(revCommit, parent, column.createSubColumnBefore(branchId[0]), TypeOfBackReference.NO, commitId);
+                        } else {
+                            newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
                         }
                     } else {
                         newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
@@ -423,21 +423,24 @@ public class Main {
     private static class Column {
         int branchId;
         List<Column> subColumns = new ArrayList<>();
-        Column nextColumn;
         Deque<HistoryEntry> entries = new ArrayDeque<>();
 
         Stream<Column> getColumnStream() {
-            if (nextColumn != null)
-                return Stream.of(
-                        Stream.of(this),
-                        subColumns.stream().flatMap(Column::getColumnStream),
-                        nextColumn.getColumnStream())
-                        .flatMap(s -> s);
-            else
-                return Stream.of(
-                        Stream.of(this),
-                        subColumns.stream().flatMap(Column::getColumnStream))
-                        .flatMap(s -> s);
+            return subColumns.stream()
+                    .flatMap(c -> {
+                        if (c != this)
+                            return c.getColumnStream();
+                        else
+                            return Stream.of(c);
+                    });
+        }
+
+        Column() {
+            subColumns.add(this);
+        }
+
+        static Column createNewList() {
+            return new Column();
         }
 
         Column createSubColumn(int branchId) {
@@ -447,8 +450,12 @@ public class Main {
             return sc;
         }
 
-        public Column createSubColumnBefore(int i) {
-            return createSubColumn(i);
+        public Column createSubColumnBefore(int branchId) {
+            int myIndex = subColumns.indexOf(this);
+            Column sc = new Column();
+            sc.branchId = branchId;
+            subColumns.add(myIndex, sc);
+            return sc;
         }
 
         public void appendEntry(HistoryEntry he) {
