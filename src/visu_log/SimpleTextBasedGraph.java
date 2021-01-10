@@ -52,7 +52,7 @@ public class SimpleTextBasedGraph {
 
             StringifiedGraph.Row r = new StringifiedGraph.Row();
             r.branchesLine = branchesLine;
-            r.description = someEntry.commitId + " " + someEntry.commit.getSha() + " " + branches.stream().filter(b -> b.commmit == finalSomeEntry.commit).map(b -> b.name).collect(Collectors.joining(" "));
+            r.description = someEntry.commitId + " " + someEntry.commit.getSha() + " " + branches.stream().filter(b -> b.commit == finalSomeEntry.commit).map(b -> b.name).collect(Collectors.joining(" "));
             graph.rows.add(r);
         }
 

@@ -36,17 +36,20 @@ public class Main {
 
         final MyRevWalk revWalk = new MyRevWalk(repository);
 
+        List<String> branchRankingHints = List.of("master", "feature");
+
         List<Branch> branches = branchRefs.stream()
                 .map(b -> {
                     try {
-                        return new Branch(b.getName(), revWalk.parseCommit(b.getObjectId()));
+                        int ranking = findRanking(b.getName(), branchRankingHints);
+                        return new Branch(b.getName(), revWalk.parseCommit(b.getObjectId()), ranking);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                 })
                 .collect(Collectors.toList());
 
-        revWalk.myMarkStart(branches.stream().map(b -> b.commmit).collect(Collectors.toList()));
+        revWalk.myMarkStart(branches.stream().map(b -> b.commit).collect(Collectors.toList()));
         revWalk.sort(RevSort.TOPO);
 
         System.out.println("Retrieve All commits");
@@ -91,6 +94,15 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static int findRanking(String name, List<String> branchRankingHints) {
+        for (int i = 0; i < branchRankingHints.size(); i++) {
+            String hint = branchRankingHints.get(i);
+            if (name.contains(hint))
+                return i;
+        }
+        return branchRankingHints.size();
     }
 
     static class DescriptionProvider implements SvgDrawing.DescriptionProvider {

@@ -11,6 +11,7 @@ public class ColumnsSorter {
     static boolean joinDroppingColumns = true;
     static boolean mayJoinDroppingMainColumn = false;
     static boolean forceCreateNewColumnsForLabeledCommits = true;
+    static boolean sortColumnsByRank = true;
 
     static List<Column> sortCommitsIntoColumns(List<Branch> branches, List<? extends Commit> commits) {
         Column theParentColumn = Column.createNewList();
@@ -20,7 +21,7 @@ public class ColumnsSorter {
             Commit revCommit = commits.get(i);
             if (i % 100 == 0)
                 System.out.println("Calculating entry: " + i + " of " + commits.size());
-            List<Branch> commitsBranches = branches.stream().filter(b -> b.commmit == revCommit).collect(Collectors.toList());
+            List<Branch> commitsBranches = branches.stream().filter(b -> b.commit == revCommit).collect(Collectors.toList());
             calculateEntryForCommit(revCommit, commitsBranches, theParentColumn, branchId, i);
         }
 
@@ -66,11 +67,36 @@ public class ColumnsSorter {
         Column columnForFirstParent = null;
         TypeOfBackReference backReferenceForFirstParent;
         if (!(needNewMainBranchBecauseLabeled || needBranchBecauseMultiParent || alwaysCreateNewColumns))
+            // try to join a referencing column if new branch is not required
             columnForFirstParent = Stream.of(mainReferencingEntries, secondaryReferencingEntries)
                     .flatMap(Collection::stream)
                     .findFirst()
                     .map(h -> h.column)
                     .orElse(null);
+
+        // maybe: if branch an important one, it may not be sorted after not important branches, so check that first
+        if (sortColumnsByRank) {
+            OptionalInt myRank = branches.stream().mapToInt(b -> b.ranking).min();
+            if (myRank.isPresent()) {
+                Optional<Column> higherRankColumn = theParentColumn.getColumnStream()
+                        .filter(c -> {
+                            // get the column, that is higher rank than one of the actual. (the columns that have to be after current)
+                            if (c.entries.isEmpty() || !c.entries.peekFirst().typeOfParent.isMainNode())
+                                return false;
+
+                            OptionalInt otherRank = c.entries.peekFirst().branches.stream().mapToInt(b -> b.ranking).min();
+                            if (!otherRank.isPresent())
+                                return true;
+
+                            return otherRank.getAsInt() > myRank.getAsInt();
+                        })
+                        .findFirst();
+                if (higherRankColumn.isPresent()) {
+                    columnForFirstParent = higherRankColumn.get().createSubColumnBefore(branchId[0]);
+                    branchId[0]++;
+                }
+            }
+        }
 
         // if needNewMainBranchBecauseLabeled stil may use column of secondary references
         if (columnForFirstParent == null && needNewMainBranchBecauseLabeled)

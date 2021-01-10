@@ -31,7 +31,7 @@ class SvgDrawingTest {
         Commit initial = TestCommit.createCommit();
         Commit next = TestCommit.createCommit(initial);
         Commit next2 = TestCommit.createCommit(next);
-        Branch b = new Branch("master", next2);
+        Branch b = new Branch("master", next2, 0);
 
         Column c = new Column();
 
@@ -53,7 +53,7 @@ class SvgDrawingTest {
         Commit masterCommit = TestCommit.createCommit(fork);
         Commit masterMergeCommit = TestCommit.createCommit(masterCommit, featureCommit);
 
-        Branch b = new Branch("master", masterMergeCommit);
+        Branch b = new Branch("master", masterMergeCommit, 0);
 
         Column c1 = new Column();
         Column c2 = new Column();
@@ -83,7 +83,7 @@ class SvgDrawingTest {
 
         Commit anotherFeature = TestCommit.createCommit("F", fork);
 
-        Branch b = new Branch("master", masterMergeCommit);
+        Branch b = new Branch("master", masterMergeCommit, 0);
 
         Column c1 = new Column();
         Column c2 = new Column();
