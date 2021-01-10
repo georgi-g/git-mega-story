@@ -67,6 +67,7 @@ public class Main {
 //            }
 //        });
 
+        //noinspection ConstantConditions
         if (true) {
             master.sort((o1, o2) -> {
                 try {
@@ -153,14 +154,18 @@ public class Main {
 
             boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
             boolean joinDroppingColumns = true;
-            boolean forceCreateNewColumnsForLabeledCommits = false;
+            boolean forceCreateNewColumnsForLabeledCommits = true;
 
             final boolean[] alreadyReused = {false};
             Set<RevCommit> usedParents = new HashSet<>();
             referencingEntries
                     .forEach(h -> {
                         //noinspection ConstantConditions
-                        boolean reuseColumn = !alreadyReused[0] && (!forceCreateNewColumnsForLabeledCommits || !commitIsLabeledByABranch) && (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
+                        boolean reuseColumn = !alreadyReused[0] &&
+                                (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
+
+                        //noinspection ConstantConditions
+                        reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && h.typeOfParent != TypeOfParent.MERGE_STH);
                         // here we have a column having history entries waiting for this commit
                         if (reuseColumn) {
                             //    newEntry(ll, revCommit, h.column);
@@ -307,11 +312,6 @@ public class Main {
         TypeOfParent(String withBackReference, String withoutBackReference) {
             this.withBackReference = withBackReference;
             this.withoutBackReference = withoutBackReference;
-        }
-
-        TypeOfParent(String symbol) {
-            this.withBackReference = symbol;
-            this.withoutBackReference = symbol;
         }
 
         String getSymbol(TypeOfBackReference backReference) {
