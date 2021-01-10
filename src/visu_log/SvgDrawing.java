@@ -2,6 +2,7 @@ package visu_log;
 
 import org.eclipse.jgit.revwalk.RevCommit;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,10 +24,18 @@ public class SvgDrawing {
     static int incommingFromChildTransitionHeight = 13;
 
 
-    static String path = "\t<path d=\"%s\" stroke-width=\"1\" stroke=\"#2927f3\" fill=\"none\"/>";
+    static String path = "\t<path d=\"%s\" stroke-width=\"1\" fill=\"none\" stroke=\"#%06x\"/>";
 
-    static String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#79c753\" stroke=\"none\"/>";
-    static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#034f84\"/>";
+    static String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
+
+    static Color[] colors = new Color[]{
+            new Color(62, 149, 255),
+            Color.GREEN,
+            Color.ORANGE,
+            Color.RED,
+            Color.MAGENTA
+    };
 
 
     static void createSvg(ArrayList<List<Main.HistoryEntry>> table) {
@@ -36,6 +45,8 @@ public class SvgDrawing {
 
         for (List<Main.HistoryEntry> entries : table) {
             for (int c = 0; c < entries.size(); c++) {
+                int colorLine = colors[c % colors.length].darker().getRGB() & 0xffffff;
+                int color = colors[c % colors.length].getRGB() & 0xffffff;
                 Main.HistoryEntry historyEntry = entries.get(c);
 
                 if (historyEntry != null) {
@@ -43,11 +54,11 @@ public class SvgDrawing {
                     switch (historyEntry.typeOfParent) {
                         case MERGE_MAIN:
                         case SINGLE_PARENT:
-                            result.add(drawMainParentConnection(historyEntry, c, table));
+                            result.add(drawMainParentConnection(historyEntry, c, table, colorLine));
                             break;
                         case MERGE_STH:
-                            result.add(drawSecondaryParentConnection(historyEntry, c, table));
-                            result.add(drawMainParentConnection(historyEntry, c, table));
+                            result.add(drawSecondaryParentConnection(historyEntry, c, table, colorLine));
+                            result.add(drawMainParentConnection(historyEntry, c, table, colorLine));
                             break;
                     }
 
@@ -55,7 +66,7 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            String commitDots = String.format(commit, leftOffset + c * commitWidth, historyEntry.commitId * commitHeight + topOffset);
+                            String commitDots = String.format(commit, leftOffset + c * commitWidth, historyEntry.commitId * commitHeight + topOffset, color);
                             result.add(commitDots);
                     }
                 }
@@ -76,7 +87,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static String drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table) {
+    private static String drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table, int color) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -94,12 +105,12 @@ public class SvgDrawing {
         String l1 = String.format("L %d, %d ", myX + circleDistanceX * Integer.signum(mainNodeColumn - myColumn), myY);
         String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, myY + circleDistanceY);
 
-        return String.format(path, m + l1 + c2);
+        return String.format(path, m + l1 + c2, color);
 
     }
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static String drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
+    private static String drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table, int color) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
@@ -116,7 +127,7 @@ public class SvgDrawing {
                     String m = String.format("M %d, %d ", startX, startY);
                     m += String.format("L %d, %d ", parentX, parentY);
 
-                    return String.format(path, m);
+                    return String.format(path, m, color);
                 } else {
 
                     if (Math.abs(parentColumn - columnPosition) > 1) {
@@ -162,7 +173,7 @@ public class SvgDrawing {
                         //debugPoints += String.format(debugPoint, splitPointX, splitPointY);
 
 
-                        return String.format(path, m) + debugPoints;
+                        return String.format(path, m, color) + debugPoints;
                     } else {
                         String m = String.format("M %d, %d ", startX, startY);
                         int parentIsRight = Integer.signum(parentColumn - columnPosition);
@@ -182,7 +193,7 @@ public class SvgDrawing {
                         m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
                         m += String.format("T %d, %d ", parentX, parentY);
 
-                        return String.format(path, m);
+                        return String.format(path, m, color);
                     }
 
                 }
