@@ -50,7 +50,7 @@ public class SvgDrawing {
         int num = 23;
         colors = new Color[num];
         for (int i = 0; i < colors.length; i++) {
-            colors[i] = Color.getHSBColor(((float) i * 3 / num), 0.71f, 1);
+            colors[i] = Color.getHSBColor(((float) i * 7 / num), 0.71f, 1);
         }
     }
 
@@ -88,7 +88,6 @@ public class SvgDrawing {
             }
             for (int c = 0; c < entries.size(); c++) {
                 int colorLine = getColor(colors[c % colors.length].darker());
-                int colorLineMerge = getColor(colors[c % colors.length].darker());
                 int color = getColor(colors[c % colors.length]);
                 HistoryEntry historyEntry = entries.get(c);
 
@@ -112,11 +111,13 @@ public class SvgDrawing {
 
                             if (path.isPresent()) {
                                 Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, path.get().parentId, path.get().parentColumn);
+                                int colorLineMerge = getColor(colors[path.get().parentColumn % colors.length].darker());
                                 result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLineMerge));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                                 debugPoints.add(path.get().debugPoints);
                             } else {
+                                int colorLineMerge = getColor(colors[c % colors.length].darker());
                                 Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, historyEntry.commitId + 2, historyEntry.commitId);
                                 result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, colorLineMerge));
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
