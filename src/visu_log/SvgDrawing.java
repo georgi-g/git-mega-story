@@ -85,18 +85,31 @@ public class SvgDrawing {
                 "<svg width=\"4000\" height=\"%d\">\n\n%s\n\n</svg>";
 
         String script = "<script type=\"application/ecmascript\"> " +
-                "let x = document.getElementsByClassName(\"text_branch\");    \n" +
+                "    let x = document.getElementsByClassName(\"commit_branches\");\n" +
+                "    \n" +
                 "    \n" +
                 "    for (let i = 0; i < x.length; i++) {\n" +
+                "        let currentXDelta = -1;\n" +
                 "        console.info(\"blub\" + x[i]);\n" +
-                "        let f = x[i].getBBox();\n" +
-                "        console.info(\"blub\" + x[i].parentNode);\n" +
-                "        let rectNode = x[i].parentNode.querySelector('rect');\n" +
-                "        rectNode.setAttribute(\"width\", f.width);\n" +
-                "        rectNode.setAttribute(\"height\", f.height);\n" +
-                "        rectNode.setAttribute(\"x\", f.x);\n" +
-                "        rectNode.setAttribute(\"y\", f.y);" +
-                "    }" +
+                "        let groupNodes = x[i].querySelectorAll('g');\n" +
+                "        for (let gNode = 0; gNode < groupNodes.length; gNode++) {\n" +
+                "            console.info(\"blub\" + x[i]);\n" +
+                "            let textNode = groupNodes[gNode].querySelector('text');\n" +
+                "            let rectNode = groupNodes[gNode].querySelector('rect');\n" +
+                "            if (!textNode || !rectNode)\n" +
+                "                continue;\n" +
+                "            if (currentXDelta < 0)\n" +
+                "                currentXDelta = textNode.getAttribute(\"x\");\n" +
+                "            else\n" +
+                "                textNode.setAttribute(\"x\", currentXDelta);\n" +
+                "            let f = textNode.getBBox();\n" +
+                "            currentXDelta = f.x + f.width + 5;\n" +
+                "            rectNode.setAttribute(\"width\", f.width);\n" +
+                "            rectNode.setAttribute(\"height\", f.height);\n" +
+                "            rectNode.setAttribute(\"x\", f.x);\n" +
+                "            rectNode.setAttribute(\"y\", f.y);\n" +
+                "        }\n" +
+                "    }\n" +
                 "</script>";
 
 
@@ -140,16 +153,20 @@ public class SvgDrawing {
         List<String> branchesOnCommit = branches.stream()
                 .filter(b -> b.getObjectId().equals(historyEntry.commit.toObjectId()))
                 .map(Ref::getName)
+                .map(s -> s.replace("refs/heads/", ""))
                 .collect(Collectors.toList());
 
         int startX = leftOffset + columnPosition * commitWidth;
         int startY = historyEntry.commitId * commitHeight + topOffset;
 
         result += String.format(commit, startX, startY, color);
-        String names = String.join(" ", branchesOnCommit);
 
+        result += "<g class=\"commit_branches\">";
+        for (String branchName : branchesOnCommit) {
+            result += "<g>" + String.format(rect, startX + 20, startY, 200, 200) + String.format(label, startX + 20, startY, branchName) + "</g>";
+        }
+        result += "</g>";
 
-        result += "<g>" + String.format(rect, startX + 20, startY, 200, 200, names) + String.format(label, startX + 20, startY, names) + "</g>";
         return result;
     }
 
