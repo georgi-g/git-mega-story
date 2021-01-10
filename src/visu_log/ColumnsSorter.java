@@ -1,7 +1,6 @@
 package visu_log;
 
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -15,12 +14,12 @@ public class ColumnsSorter {
     static boolean mayJoinDroppingMainColumn = false;
     static boolean forceCreateNewColumnsForLabeledCommits = true;
 
-    static List<Column> sortCommitsIntoColumns(List<Ref> branches, List<RevCommit> commits) {
+    static List<Column> sortCommitsIntoColumns(List<Ref> branches, List<Commit> commits) {
         Column theParentColumn = Column.createNewList();
 
         final int[] branchId = {0};
         for (int i = 0; i < commits.size(); i++) {
-            RevCommit revCommit = commits.get(i);
+            Commit revCommit = commits.get(i);
             if (i % 100 == 0)
                 System.out.println("Calculating entry: " + i + " of " + commits.size());
             calculateEntryForCommit(revCommit, branches, theParentColumn, branchId, i);
@@ -30,9 +29,9 @@ public class ColumnsSorter {
         return theParentColumn.getColumnStream().collect(Collectors.toList());
     }
 
-    private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
+    private static void calculateEntryForCommit(Commit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
         //noinspection ConstantConditions
-        Map<RevCommit, Map<Boolean, List<Column>>> columnsWithDanglingParents = theParentColumn.getColumnStream()
+        Map<Commit, Map<Boolean, List<Column>>> columnsWithDanglingParents = theParentColumn.getColumnStream()
                 .filter(c -> c.entries.size() > 0)
                 .filter(c -> c.entries.peekLast().parent != null)
                 .collect(Collectors.groupingBy(c -> c.entries.peekLast().parent,
@@ -90,7 +89,7 @@ public class ColumnsSorter {
                 branchId[0]++;
             }
         }
-        newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, commitIsLabeledByABranch);
+        newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, commitIsLabeledByABranch);
 
 
         Column finalColumnForFirstParent = columnForFirstParent;
@@ -101,8 +100,8 @@ public class ColumnsSorter {
 
         // secondary parents may join the dropping columns
         AtomicBoolean increase = new AtomicBoolean(false);
-        Arrays.stream(revCommit.getParents())
-                .filter(p -> revCommit.getParent(0) != p)
+        revCommit.getMyParents().stream()
+                .filter(p -> revCommit.getMyParent(0) != p)
                 .forEach(parent -> {
                     boolean joined = false;
                     if (columnsWithDanglingParents.containsKey(parent) && joinDroppingColumns) {
@@ -134,13 +133,13 @@ public class ColumnsSorter {
             branchId[0]++;
     }
 
-    private static void newEntryBackReferenceWithoutParent(RevCommit revCommit, Column theColumn, int commitId) {
+    private static void newEntryBackReferenceWithoutParent(Commit revCommit, Column theColumn, int commitId) {
         HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId);
         historyEntry.backReference = TypeOfBackReference.YES;
         historyEntry.typeOfParent = TypeOfParent.NONE;
     }
 
-    private static void newEntryForParent(RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference, int commitId, boolean isLabeled) {
+    private static void newEntryForParent(Commit revCommit, Commit parent, Column theColumn, TypeOfBackReference backReference, int commitId, boolean isLabeled) {
         HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId, parent, isLabeled);
 
         switch (revCommit.getParentCount()) {

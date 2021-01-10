@@ -8,7 +8,6 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
-import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -36,7 +35,7 @@ public class Main {
         //Iterable<RevCommit> master = g.log().add(repository.resolve("test-head")).call();
         //List<RevCommit> master = StreamSupport.stream(g.log().all().call().spliterator(), false).collect(Collectors.toList());
 
-        final RevWalk revWalk = new RevWalk(repository);
+        final MyRevWalk revWalk = new MyRevWalk(repository);
 
         revWalk.markStart(branches.stream()
                 .map(Ref::getObjectId)
@@ -51,7 +50,8 @@ public class Main {
         revWalk.sort(RevSort.TOPO);
 
         System.out.println("Retrieve All commits");
-        List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).limit(2000).collect(Collectors.toList());
+        List<Commit> master = StreamSupport.stream(revWalk.mySpliterator(), false).limit(2000).collect(Collectors.toList());
+        Object object = master.get(0);
 
         System.out.println("Sorting everything");
         master.sort(new CommitComparator(revWalk, false));
@@ -92,7 +92,7 @@ public class Main {
         }
     }
 
-    private static void printAllCommits(List<RevCommit> commits) {
+    private static void printAllCommits(List<? extends RevCommit> commits) {
         commits.forEach(revCommit -> {
             System.out.println("Commit Name " + revCommit.getId().getName());
 //            System.out.println(revCommit.getId());

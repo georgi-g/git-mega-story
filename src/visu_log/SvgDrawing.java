@@ -1,7 +1,6 @@
 package visu_log;
 
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.awt.*;
 import java.io.BufferedReader;
@@ -338,7 +337,7 @@ public class SvgDrawing {
         String description;
     }
 
-    private static int findMainNodeFor(RevCommit commit, List<HistoryEntry> row) {
+    private static int findMainNodeFor(visu_log.Commit commit, List<HistoryEntry> row) {
         for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
             HistoryEntry parent = row.get(parentColumn);
             if (parent != null && parent.typeOfParent.isMainNode() && parent.commit == commit) {
