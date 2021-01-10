@@ -11,28 +11,38 @@ import java.util.stream.Collectors;
 public class SvgDrawing {
     static int topOffset = 20;
     static int leftOffset = 20;
-    static int commitWidth = 20;
-    static int commitHeight = 26;
+    static int commitWidth = 30;
+    static int commitHeight = 40;
 
-    static int circleDistanceX = 10;
-    static int circleDistanceY = 10;
+    static int circleDistanceX = 15;
+    static int circleDistanceY = 15;
 
-    static int incomingSecondaryMergeTransitionHeight = 4;
+    static int incomingSecondaryMergeTransitionHeight = 7;
 
     // transitionHeight < splitPoint*2
     // commitHeight - commitWidth < incommingFromChildTransitionHeight
-    static int incomingFromChildSplitPoint = 12;
-    static int incomingFromChildTransitionHeight = 13;
+    static int incomingFromChildSplitPoint = 15;
+    static int incomingFromChildTransitionHeight = 18;
 
+    private static final int labelOffset = 20;
+    private static final int commitDescriptionOffset = 20;
 
-    static String path = "\t<path d=\"%s\" stroke-width=\"%d\" fill=\"none\" stroke=\"#%06x\"/>";
-    static String pathMerge = "\t<path d=\"%s\" stroke-width=\"%d\" stroke-dasharray=\"4 1\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String path = "\t<path d=\"%s\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String pathMerge = "\t<path d=\"%s\" stroke-dasharray=\"4 1\" fill=\"none\" stroke=\"#%06x\"/>";
 
-    static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"#%06x\" stroke=\"#000000\"/>";
-    static String labeledCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"5\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String labeledCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"7\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
     static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>";
-    static String rect = "<rect class=\"rect_branch\" rx=\"5\" ry=\"5\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\"/>";
+    static String rect = "<rect class=\"rect_branch\" rx=\"5\" ry=\"5\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#%06x\" stroke=\"#%06x\"/>";
+
+    private static final String commitDescription = "" +
+            "        <g transform=\"translate(%d,%d)\" class=\"commit_branches commit_g\">\n" +
+            "            <g class=\"%s\">\n" +
+            "                <rect x=\"20\" y=\"-50\" rx=\"5\" width=\"200\" height=\"20\" fill=\"#%06x\" stroke=\"#%06x\"/>\n" +
+            "                <text x=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n" +
+            "            </g>\n" +
+            "        </g>\n";
 
     static Color[] colors = new Color[]{
             new Color(74, 156, 255),
@@ -42,6 +52,12 @@ public class SvgDrawing {
             new Color(255, 81, 81),
             new Color(255, 233, 91),
     };
+
+    static Color fillDescription = new Color(217, 233, 255);
+    static Color strokeDescription = new Color(0, 90, 201);
+
+    static Color fillLabel = new Color(0xee, 0xff, 0xe4);
+    static Color strokeLabel = new Color(0x30, 0x7f, 0x00);
 
 
     static String createSvg(List<List<HistoryEntry>> table) {
@@ -60,9 +76,9 @@ public class SvgDrawing {
                 }
             }
             for (int c = 0; c < entries.size(); c++) {
-                int colorLine = colors[c % colors.length].darker().getRGB() & 0xffffff;
-                int colorLineMerge = colors[c % colors.length].darker().getRGB() & 0xffffff;
-                int color = colors[c % colors.length].getRGB() & 0xffffff;
+                int colorLine = getColor(colors[c % colors.length].darker());
+                int colorLineMerge = getColor(colors[c % colors.length].darker());
+                int color = getColor(colors[c % colors.length]);
                 HistoryEntry historyEntry = entries.get(c);
 
                 if (historyEntry != null) {
@@ -73,7 +89,7 @@ public class SvgDrawing {
                         case SINGLE_PARENT: {
                             Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
                             if (path.isPresent()) {
-                                result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, 1, colorLine));
+                                result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, colorLine));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                             }
                             break;
@@ -83,11 +99,11 @@ public class SvgDrawing {
 
                             Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
                             if (path.isPresent()) {
-                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, 1, colorLineMerge));
+                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLineMerge));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             } else {
-                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, 1, colorLineMerge));
+                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, colorLineMerge));
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             }
@@ -112,9 +128,10 @@ public class SvgDrawing {
         int diagramSize = table.size() * commitHeight + topOffset * 2;
 
         String svgFrame = "<style type=\"text/css\">\n" +
-                "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 5;}\n" +
+                "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 9;}\n" +
+                "\tpath {stroke-width: 1;}\n" +
                 "\tpath:hover {stroke-width: 4;}\n" +
-                "\ttext {font-size: x-small; font-family: Arial, Helvetica, sans-serif}\n" +
+                "\ttext {font-family: Arial, Helvetica, sans-serif}\n" +
                 "\t.commit_g > g {display: none;}\n" +
                 "\tg.show_group {display: unset;}\n" +
                 "\tg.show_group_click {display: unset;}\n" +
@@ -180,7 +197,7 @@ public class SvgDrawing {
 
         int startX = leftOffset + columnPosition * commitWidth;
         int startY = historyEntry.commitId * commitHeight + topOffset;
-        int labelX = leftOffset + maximalFilledColumnSoFar * commitWidth + 10;
+        int labelX = leftOffset + maximalFilledColumnSoFar * commitWidth + labelOffset;
 
         String theClass = "c" + historyEntry.commit.getSha();
         if (!branchesOnCommit.isEmpty()) {
@@ -189,28 +206,15 @@ public class SvgDrawing {
             commit = String.format(usualCommit, theClass, startX, startY, color);
         }
 
-        Color c = new Color(217, 233, 255);
-        Color stroke = new Color(0, 90, 201);
-
-        //Color cc = new Color(0xee, 0xff, 0xe4);
-        //Color ccc = new Color(0x30, 0x7f, 0x00);
-
-        String commitDescription =
-                "            <g transform=\"translate(%d,%d)\" class=\"commit_branches commit_g\">\n" +
-                        "            <g class=\"%s\">\n" +
-                        "                <rect rx=\"5\" x=\"20\" y=\"-10\" width=\"200\" height=\"20\" fill=\"#%06x\" stroke=\"#%06x\"/>\n" +
-                        "                <text x=\"20\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n" +
-                        "            </g>\n" +
-                        "            </g>\n";
-
-        String description = String.format(commitDescription, startX, startY, theClass, c.getRGB() & 0xffffff, stroke.getRGB() & 0xffffff, theClass + " " + historyEntry.commit.getSubject());
+        String descriptionText = theClass + " " + historyEntry.commit.getSubject();
+        String description = String.format(commitDescription, startX, startY, theClass, getColor(fillDescription), getColor(strokeDescription), commitDescriptionOffset, descriptionText);
 
 
         if (!branchesOnCommit.isEmpty()) {
             StringBuilder sb = new StringBuilder("\n<g class=\"commit_branches\">\n");
             for (String branchName : branchesOnCommit) {
                 sb.append("\t<g>\n")
-                        .append(String.format(rect, labelX, startY, 20, 20)).append("\n")
+                        .append(String.format(rect, labelX, startY, 20, 20, getColor(fillLabel), getColor(strokeLabel))).append("\n")
                         .append(String.format(label, labelX, startY, branchName)).append("\n")
                         .append("\t</g>\n");
             }
@@ -223,6 +227,10 @@ public class SvgDrawing {
         res.commit = commit;
 
         return res;
+    }
+
+    private static int getColor(Color color) {
+        return color.getRGB() & 0xffffff;
     }
 
     // optional because if the history was truncated (and without parent rewrite) we have dangling parent references
