@@ -28,7 +28,8 @@ public class SvgDrawing {
 
     static String path = "\t<path d=\"%s\" stroke-width=\"1\" fill=\"none\" stroke=\"#%06x\"/>";
 
-    static String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String usualCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String labeledCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
     static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n";
     static String rect = "<rect class=\"rect_branch\" rx=\"10\" ry=\"10\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\" fill=\"none\" />\n";
@@ -46,6 +47,8 @@ public class SvgDrawing {
 
 
         List<String> result = new ArrayList<>();
+        List<String> commits = new ArrayList<>();
+
 
         for (List<Main.HistoryEntry> entries : table) {
             for (int c = 0; c < entries.size(); c++) {
@@ -75,13 +78,14 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            result.add(drawCommit(historyEntry, c, branches, color));
+                            commits.add(drawCommit(historyEntry, c, branches, color));
                             break;
                     }
                 }
             }
         }
 
+        result.addAll(commits);
 
         String svgFrame = "<style type=\"text/css\">\n" +
                 "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 5;}\n" +
@@ -168,14 +172,23 @@ public class SvgDrawing {
         int startX = leftOffset + columnPosition * commitWidth;
         int startY = historyEntry.commitId * commitHeight + topOffset;
 
-        result += String.format(commit, startX, startY, color);
-
-        result += "<g class=\"commit_branches\">";
-        for (String branchName : branchesOnCommit) {
-            result += "<g>" + String.format(rect, startX + 20, startY, 200, 200) + String.format(label, startX + 20, startY, branchName) + "</g>";
+        if (!branchesOnCommit.isEmpty()) {
+            result += String.format(labeledCommit, startX, startY, color);
+        } else {
+            result += String.format(usualCommit, startX, startY, color);
         }
-        result += "</g>";
 
+        if (!branchesOnCommit.isEmpty()) {
+            StringBuilder sb = new StringBuilder("<g class=\"commit_branches\">");
+            for (String branchName : branchesOnCommit) {
+                sb.append("<g>")
+                        .append(String.format(rect, startX + 20, startY, 200, 200))
+                        .append(String.format(label, startX + 20, startY, branchName))
+                        .append("</g>");
+            }
+            sb.append("</g>");
+            result += sb;
+        }
         return result;
     }
 
