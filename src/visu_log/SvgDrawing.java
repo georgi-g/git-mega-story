@@ -4,6 +4,8 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,11 +29,11 @@ public class SvgDrawing {
     static String path = "\t<path d=\"%s\" stroke-width=\"%d\" fill=\"none\" stroke=\"#%06x\"/>";
     static String pathMerge = "\t<path d=\"%s\" stroke-width=\"%d\" stroke-dasharray=\"4 1\" fill=\"none\" stroke=\"#%06x\"/>";
 
-    static String usualCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"#%06x\" stroke=\"#000000\"/>";
-    static String labeledCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String labeledCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
-    static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n";
-    static String rect = "<rect class=\"rect_branch\" rx=\"5\" ry=\"5\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\" fill=\"none\" />\n";
+    static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>";
+    static String rect = "<rect class=\"rect_branch\" rx=\"5\" ry=\"5\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\"/>";
 
     static Color[] colors = new Color[]{
             new Color(74, 156, 255),
@@ -48,6 +50,7 @@ public class SvgDrawing {
 
         List<String> result = new ArrayList<>();
         List<String> commits = new ArrayList<>();
+        List<String> descriptions = new ArrayList<>();
 
 
         int maxColumnSoFar = 0;
@@ -96,7 +99,9 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            commits.add(drawCommit(historyEntry, c, branches, color, maxColumnSoFar));
+                            Commit commit = drawCommit(historyEntry, c, branches, color, maxColumnSoFar);
+                            commits.add(commit.commit);
+                            descriptions.add(commit.description);
                             break;
                     }
                 }
@@ -104,42 +109,24 @@ public class SvgDrawing {
         }
 
         result.addAll(commits);
+        result.addAll(descriptions);
         int diagramSize = table.size() * commitHeight + topOffset * 2;
 
         String svgFrame = "<style type=\"text/css\">\n" +
                 "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 5;}\n" +
                 "\tpath:hover {stroke-width: 4;}\n" +
                 "\ttext {font-size: x-small; font-family: Arial, Helvetica, sans-serif}\n" +
+                "\t.commit_g > g {display: none;}\n" +
+                "\tg.show_group {display: unset;}\n" +
+                "\tg.show_group_click {display: unset;}\n" +
+                "\t.show_group_click > rect {stroke-width:1.5;}\n" +
                 "</style>\n" +
                 "<svg width=\"4000\" height=\"%d\">" +
                 "\n\n%s\n\n" +
                 "</svg>";
 
-        String script = "<script type=\"application/ecmascript\"> " +
-                "    let x = document.getElementsByClassName(\"commit_branches\");\n" +
-                "    \n" +
-                "    \n" +
-                "    for (let i = 0; i < x.length; i++) {\n" +
-                "        let currentXDelta = -1;\n" +
-                "        let groupNodes = x[i].querySelectorAll('g');\n" +
-                "        for (let gNode = 0; gNode < groupNodes.length; gNode++) {\n" +
-                "            let textNode = groupNodes[gNode].querySelector('text');\n" +
-                "            let rectNode = groupNodes[gNode].querySelector('rect');\n" +
-                "            if (!textNode || !rectNode)\n" +
-                "                continue;\n" +
-                "            if (currentXDelta < 0)\n" +
-                "                currentXDelta = textNode.getAttribute(\"x\");\n" +
-                "            else\n" +
-                "                textNode.setAttribute(\"x\", currentXDelta);\n" +
-                "            let f = textNode.getBBox();\n" +
-                "            currentXDelta = f.x + f.width + 10;\n" +
-                "            rectNode.setAttribute(\"width\", f.width + 4);\n" +
-                "            rectNode.setAttribute(\"height\", f.height + 4);\n" +
-                "            rectNode.setAttribute(\"x\", f.x - 2);\n" +
-                "            rectNode.setAttribute(\"y\", f.y - 2);\n" +
-                "        }\n" +
-                "    }\n" +
-                "</script>";
+        String jsMagic = new BufferedReader(new InputStreamReader(SvgDrawing.class.getResourceAsStream("the-magic.js"))).lines().collect(Collectors.joining("\n"));
+        String script = "<script type=\"application/ecmascript\">\n " + jsMagic + "</script>";
 
 
         String svg = String.format(svgFrame, diagramSize, String.join("\n", result));
@@ -178,8 +165,8 @@ public class SvgDrawing {
 
     }
 
-    private static String drawCommit(Main.HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color, int maximalFilledColumnSoFar) {
-        String result = "";
+    private static Commit drawCommit(Main.HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color, int maximalFilledColumnSoFar) {
+        String commit;
         List<String> branchesOnCommit = branches.stream()
                 .filter(b -> b.getObjectId().equals(historyEntry.commit.toObjectId()))
                 .map(Ref::getName)
@@ -190,24 +177,47 @@ public class SvgDrawing {
         int startY = historyEntry.commitId * commitHeight + topOffset;
         int labelX = leftOffset + maximalFilledColumnSoFar * commitWidth + 10;
 
+        String theClass = "c" + historyEntry.commit.getId().abbreviate(7).name();
         if (!branchesOnCommit.isEmpty()) {
-            result += String.format(labeledCommit, startX, startY, color);
+            commit = String.format(labeledCommit, theClass, startX, startY, color);
         } else {
-            result += String.format(usualCommit, startX, startY, color);
+            commit = String.format(usualCommit, theClass, startX, startY, color);
         }
 
+        Color c = new Color(217, 233, 255);
+        Color stroke = new Color(0, 90, 201);
+
+        //Color cc = new Color(0xee, 0xff, 0xe4);
+        //Color ccc = new Color(0x30, 0x7f, 0x00);
+
+        String commitDescription =
+                "            <g transform=\"translate(%d,%d)\" class=\"commit_branches commit_g\">\n" +
+                        "            <g class=\"%s\">\n" +
+                        "                <rect rx=\"5\" x=\"20\" y=\"-10\" width=\"200\" height=\"20\" fill=\"#%06x\" stroke=\"#%06x\"/>\n" +
+                        "                <text x=\"20\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n" +
+                        "            </g>\n" +
+                        "            </g>\n";
+
+        String description = String.format(commitDescription, startX, startY, theClass, c.getRGB() & 0xffffff, stroke.getRGB() & 0xffffff, theClass + " " + historyEntry.commit.getShortMessage());
+
+
         if (!branchesOnCommit.isEmpty()) {
-            StringBuilder sb = new StringBuilder("<g class=\"commit_branches\">");
+            StringBuilder sb = new StringBuilder("\n<g class=\"commit_branches\">\n");
             for (String branchName : branchesOnCommit) {
-                sb.append("<g>")
-                        .append(String.format(rect, labelX, startY, 20, 20))
-                        .append(String.format(label, labelX, startY, branchName))
-                        .append("</g>");
+                sb.append("\t<g>\n")
+                        .append(String.format(rect, labelX, startY, 20, 20)).append("\n")
+                        .append(String.format(label, labelX, startY, branchName)).append("\n")
+                        .append("\t</g>\n");
             }
             sb.append("</g>");
-            result += sb;
+            commit += sb;
         }
-        return result;
+
+        Commit res = new Commit();
+        res.description = description;
+        res.commit = commit;
+
+        return res;
     }
 
     private static Optional<Path> drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
@@ -321,6 +331,11 @@ public class SvgDrawing {
         String startPoint;
         String path;
         int parentColumn;
+    }
+
+    private static class Commit {
+        String commit;
+        String description;
     }
 
     private static int findMainNodeFor(RevCommit commit, List<Main.HistoryEntry> row) {
