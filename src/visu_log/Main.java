@@ -150,7 +150,7 @@ public class Main {
 
         graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
 
-        SvgDrawing.createSvg(table);
+        SvgDrawing.createSvg(table, branches);
     }
 
     private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {

@@ -1,5 +1,6 @@
 package visu_log;
 
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.awt.*;
@@ -8,10 +9,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SvgDrawing {
-    static int topOffset = 10;
-    static int leftOffset = 10;
+    static int topOffset = 20;
+    static int leftOffset = 20;
     static int commitWidth = 20;
     static int commitHeight = 26;
 
@@ -28,6 +30,8 @@ public class SvgDrawing {
 
     static String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n";
+    static String rect = "<rect class=\"rect_branch\" rx=\"10\" ry=\"10\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\" fill=\"none\" />\n";
 
     static Color[] colors = new Color[]{
             new Color(62, 149, 255),
@@ -38,7 +42,7 @@ public class SvgDrawing {
     };
 
 
-    static void createSvg(ArrayList<List<Main.HistoryEntry>> table) {
+    static void createSvg(ArrayList<List<Main.HistoryEntry>> table, List<Ref> branches) {
 
 
         List<String> result = new ArrayList<>();
@@ -66,8 +70,8 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            String commitDots = String.format(commit, leftOffset + c * commitWidth, historyEntry.commitId * commitHeight + topOffset, color);
-                            result.add(commitDots);
+                            result.add(drawCommit(historyEntry, c, branches, color));
+                            break;
                     }
                 }
             }
@@ -79,7 +83,25 @@ public class SvgDrawing {
                 "\tpath:hover {stroke-width: 4;}\n" +
                 "</style>\n" +
                 "<svg width=\"4000\" height=\"%d\">\n\n%s\n\n</svg>";
+
+        String script = "<script type=\"application/ecmascript\"> " +
+                "let x = document.getElementsByClassName(\"text_branch\");    \n" +
+                "    \n" +
+                "    for (let i = 0; i < x.length; i++) {\n" +
+                "        console.info(\"blub\" + x[i]);\n" +
+                "        let f = x[i].getBBox();\n" +
+                "        console.info(\"blub\" + x[i].parentNode);\n" +
+                "        let rectNode = x[i].parentNode.querySelector('rect');\n" +
+                "        rectNode.setAttribute(\"width\", f.width);\n" +
+                "        rectNode.setAttribute(\"height\", f.height);\n" +
+                "        rectNode.setAttribute(\"x\", f.x);\n" +
+                "        rectNode.setAttribute(\"y\", f.y);" +
+                "    }" +
+                "</script>";
+
+
         String svg = String.format(svgFrame, String.join("\n", result));
+        svg += script;
         System.out.println(svg);
 
         try (FileWriter b = new FileWriter(new File("D:\\Documents\\programming-things\\draw-git-log\\test.html"))) {
@@ -111,6 +133,24 @@ public class SvgDrawing {
 
         return String.format(path, m + l1 + c2, color);
 
+    }
+
+    private static String drawCommit(Main.HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color) {
+        String result = "";
+        List<String> branchesOnCommit = branches.stream()
+                .filter(b -> b.getObjectId().equals(historyEntry.commit.toObjectId()))
+                .map(Ref::getName)
+                .collect(Collectors.toList());
+
+        int startX = leftOffset + columnPosition * commitWidth;
+        int startY = historyEntry.commitId * commitHeight + topOffset;
+
+        result += String.format(commit, startX, startY, color);
+        String names = String.join(" ", branchesOnCommit);
+
+
+        result += "<g>" + String.format(rect, startX + 20, startY, 200, 200, names) + String.format(label, startX + 20, startY, names) + "</g>";
+        return result;
     }
 
     @SuppressWarnings("UnnecessaryLocalVariable")
