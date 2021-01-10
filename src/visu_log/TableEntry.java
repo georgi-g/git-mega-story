@@ -7,7 +7,7 @@ interface TableEntry {
 
     default boolean isMainNodeFor(Commit commit) {
         List<HistoryEntry> entries = getEntries();
-        return entries.size() == 1 && entries.get(0).typeOfParent.isMainNode() && entries.get(0).commit == commit;
+        return entries.stream().anyMatch(e -> e.typeOfParent.isMainNode() && e.commit == commit);
     }
 
     default boolean isMainNode() {
