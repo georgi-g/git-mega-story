@@ -63,6 +63,41 @@ class SvgDrawingTest {
         showResults(entries);
     }
 
+    @Test
+    void createSvgCrossingMerge() {
+
+        Commit initial = TestCommit.createCommit();
+        Commit fork = TestCommit.createCommit(initial);
+        Commit featureCommit = TestCommit.createCommit(fork);
+        Commit masterCommit = TestCommit.createCommit(fork);
+        Commit masterMergeCommit = TestCommit.createCommit(masterCommit, featureCommit);
+        Commit oneMoreMasterCommit = TestCommit.createCommit(masterMergeCommit);
+
+        Commit anotherFeature = TestCommit.createCommit(fork);
+
+        Branch b = new Branch("master", masterMergeCommit);
+
+        Column c1 = new Column();
+        Column c2 = new Column();
+        Column c3 = new Column();
+
+        CommitStorage.newEntryForParent(oneMoreMasterCommit, masterMergeCommit, c1, TypeOfBackReference.NO, 0, Collections.singletonList(b));
+        CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.YES, 1);
+        CommitStorage.newEntryForParent(masterCommit, fork, c1, TypeOfBackReference.YES, 2);
+        CommitStorage.newEntryForParent(fork, initial, c1, TypeOfBackReference.YES, 3);
+        CommitStorage.newEntryForParent(initial, null, c1, TypeOfBackReference.YES, 4);
+
+        CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c2, TypeOfBackReference.NO, 1);
+        CommitStorage.newEntryForParent(featureCommit, fork, c2, TypeOfBackReference.YES, 2);
+
+        CommitStorage.newEntryForParent(anotherFeature, fork, c3, TypeOfBackReference.NO, 1);
+
+
+        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c3, c2));
+
+        showResults(entries);
+    }
+
     private void showResults(List<List<HistoryEntry>> entries) {
         Path output = tmpDir.resolve("out.html");
         System.out.println(output.toUri());
