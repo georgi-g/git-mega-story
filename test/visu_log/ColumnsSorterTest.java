@@ -111,6 +111,24 @@ class ColumnsSorterTest {
         System.out.println(SimpleTextBasedGraph.getString(SimpleTextBasedGraph.printGraph(TableCreator.createTableFromDroppingColumns(columns))));
     }
 
+    @Test
+    void noExtraBranchIfJoinedLowestRankColumn() {
+        Commit commit = TestCommit.createCommit("M");
+        Commit commit2 = TestCommit.createCommit("M", commit);
+
+        Commit commit3 = TestCommit.createCommit("M", commit2);
+
+        Branch b = new Branch("Master", commit2, 0);
+        Branch b2 = new Branch("B", commit3, 1);
+
+        List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(List.of(b, b2), List.of(commit3, commit2, commit));
+        System.out.println(SimpleTextBasedGraph.getString(SimpleTextBasedGraph.printGraph(TableCreator.createTableFromDroppingColumns(columns))));
+
+        assertSame(2, columns.size());
+
+        columns.forEach(this::validateColumn);
+    }
+
     @SuppressWarnings("ConstantConditions")
     @Test
     void backReferenceForNewColumnsIfBranchHasLowerRank() {
@@ -118,11 +136,13 @@ class ColumnsSorterTest {
         Commit commit2 = TestCommit.createCommit("M", commit);
 
         Commit commit3 = TestCommit.createCommit("M", commit2);
+        Commit commitFeature = TestCommit.createCommit("M", commit);
 
-        Branch b = new Branch("B", commit2, 0);
+        Branch b = new Branch("Master", commit2, 0);
         Branch b2 = new Branch("B", commit3, 1);
+        Branch bFeature = new Branch("Feature", commitFeature, 1);
 
-        List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(List.of(b, b2), List.of(commit3, commit2, commit));
+        List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(List.of(b, b2, bFeature), List.of(commitFeature, commit3, commit2, commit));
         System.out.println(SimpleTextBasedGraph.getString(SimpleTextBasedGraph.printGraph(TableCreator.createTableFromDroppingColumns(columns))));
 
         assertSame(commit2, columns.get(1).entries.peekFirst().commit);

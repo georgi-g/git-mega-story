@@ -91,7 +91,8 @@ public class ColumnsSorter {
         if (sortColumnsByBranchesRank) {
             OptionalInt myRank = branches.stream().mapToInt(b -> b.ranking).min();
             if (myRank.isPresent()) {
-                Optional<Column> higherRankColumn = theParentColumn.getColumnStream()
+                List<Column> allColumns = theParentColumn.getColumnStream().collect(Collectors.toList());
+                Optional<Column> higherRankColumn = allColumns.stream()
                         .filter(c -> {
                             // this is an error to check only the first entry in column, because column might get a main column later. we need to check the minimal rank of all labled
 
@@ -107,9 +108,12 @@ public class ColumnsSorter {
                         })
                         .findFirst();
                 if (higherRankColumn.isPresent()) {
-                    columnForFirstParent = higherRankColumn.get().createSubColumnBefore(branchId[0]);
-                    backReferenceForFirstParent = TypeOfBackReference.NO;
-                    branchId[0]++;
+                    // override the initial selection. The rank requires new column before the selected.
+                    if (columnForFirstParent == null || allColumns.indexOf(columnForFirstParent) > allColumns.indexOf(higherRankColumn.get())) {
+                        columnForFirstParent = higherRankColumn.get().createSubColumnBefore(branchId[0]);
+                        backReferenceForFirstParent = TypeOfBackReference.NO;
+                        branchId[0]++;
+                    }
                 }
             }
         }
