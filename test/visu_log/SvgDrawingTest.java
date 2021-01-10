@@ -9,6 +9,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 
 class SvgDrawingTest {
@@ -17,7 +18,7 @@ class SvgDrawingTest {
     Path tmpDir;
 
     @Test
-    void createSvg() throws InterruptedException, IOException {
+    void createSvgThreeCommits() throws InterruptedException, IOException {
 
 
         System.out.println(tmpDir.toUri());
@@ -49,36 +50,74 @@ class SvgDrawingTest {
         Thread.sleep(10000);
 
     }
+
+    @Test
+    void createSvgTwoBranches() throws InterruptedException, IOException {
+
+
+        System.out.println(tmpDir.toUri());
+
+        Path output = tmpDir.resolve("out.html");
+        System.out.println(output.toUri());
+
+        Commit initial = TestCommit.createCommit();
+        Commit fork = TestCommit.createCommit(initial);
+        Commit featureCommit = TestCommit.createCommit(fork);
+        Commit masterCommit = TestCommit.createCommit(fork);
+        Commit masterMergeCommit = TestCommit.createCommit(masterCommit, featureCommit);
+
+        Branch b = new Branch("master", masterMergeCommit);
+
+        Column c1 = new Column();
+        Column c2 = new Column();
+
+        CommitStorage.newEntryForParent(masterMergeCommit, masterCommit, c1, TypeOfBackReference.NO, 0, true);
+        CommitStorage.newEntryForParent(masterCommit, fork, c1, TypeOfBackReference.YES, 2, false);
+        CommitStorage.newEntryForParent(fork, initial, c1, TypeOfBackReference.YES, 3, false);
+        CommitStorage.newEntryForParent(initial, null, c1, TypeOfBackReference.YES, 4, false);
+
+        CommitStorage.newEntryForParent(masterMergeCommit, featureCommit, c2, TypeOfBackReference.NO, 0, false);
+        CommitStorage.newEntryForParent(featureCommit, fork, c2, TypeOfBackReference.YES, 1, false);
+
+        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
+        TableRewriting.repairIds(entries);
+        List<Branch> branches = List.of(b);
+
+        String svg = SvgDrawing.createSvg(entries, branches);
+
+        try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
+            w.write(svg);
+        }
+
+        Thread.sleep(10000);
+
+    }
 }
 
 class TestCommit implements Commit {
-    final Commit parent;
+    final List<Commit> parent;
 
-    static Commit createCommit() {
-        return new TestCommit(null);
-    }
-
-    static Commit createCommit(Commit parent) {
+    static Commit createCommit(Commit... parent) {
         return new TestCommit(parent);
     }
 
-    TestCommit(Commit parent) {
-        this.parent = parent;
+    TestCommit(Commit... parent) {
+        this.parent = Arrays.asList(parent);
     }
 
     @Override
     public int getParentCount() {
-        return parent != null ? 1 : 0;
+        return parent.size();
     }
 
     @Override
     public Commit getMyParent(int nth) {
-        return parent;
+        return parent.get(nth);
     }
 
     @Override
     public List<Commit> getMyParents() {
-        return List.of(parent);
+        return parent;
     }
 
     @Override
