@@ -4,26 +4,26 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 class SvgDrawingTest {
 
     @TempDir
     static Path tmpDir;
 
+    static TestHelper testHelper = new TestHelper();
+
     @AfterAll
     static void afterAll() {
-        showResults();
+        testHelper.showResults(tmpDir);
+    }
+
+    @SafeVarargs
+    private void addResults(List<List<HistoryEntry>>... tables) {
+        testHelper.addResults(tables);
     }
 
     @Test
@@ -299,37 +299,6 @@ class SvgDrawingTest {
         addResults(entries1, entries2, entries3, entries4);
     }
 
-    static List<List<List<HistoryEntry>>> tables = new ArrayList<>();
-
-    @SafeVarargs
-    private void addResults(List<List<HistoryEntry>>... tables) {
-        SvgDrawingTest.tables.addAll(Arrays.stream(tables).collect(Collectors.toList()));
-    }
-
-    private static void showResults() {
-        Path output = tmpDir.resolve("out.html");
-        System.out.println(output.toUri());
-
-        StringBuilder sb = new StringBuilder();
-
-        for (List<List<HistoryEntry>> table : tables) {
-            TableRewriting.repairIds(table);
-            String svg = new SvgDrawing(new DescriptionProvider()).createSvg(table);
-            sb.append(svg);
-        }
-
-
-        try {
-
-            try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
-                w.write(sb.toString());
-            }
-
-            Thread.sleep(10000);
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }
 
 class DescriptionProvider implements SvgDrawing.DescriptionProvider {

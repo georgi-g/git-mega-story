@@ -67,6 +67,8 @@ public class Main {
         System.out.println("Sort Commits into Columns");
         List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(branches, master);
 
+        ColumnsSorter.sortSecondaryDroppingIntoTheDirectionOfTheirParent(columns);
+
         System.out.println("Create Table from dropping Columns");
         List<List<HistoryEntry>> table = TableCreator.createTableFromDroppingColumns(columns);
         System.out.println("Rewrite secondary dropping");

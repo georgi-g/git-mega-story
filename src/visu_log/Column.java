@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.function.DoubleSupplier;
 import java.util.stream.Stream;
 
 class Column {
@@ -54,5 +55,23 @@ class Column {
         if (entries.size() > 0)
             return entries.peekLast();
         throw new RuntimeException("Column is Empty");
+    }
+
+    DoubleSupplier rank;
+
+    static class ReferenceInfos implements DoubleSupplier {
+        HistoryEntry parent;
+        List<Column> children = new ArrayList<>();
+
+        @Override
+        public double getAsDouble() {
+            double parentRank = parent.column.rank.getAsDouble();
+            int childrenSum = children.stream().mapToInt(c -> Double.compare(c.rank.getAsDouble(), parentRank)).sum();
+            boolean columnRight = childrenSum >= 0;
+            double mirror = columnRight ? 1 : -1;
+            //noinspection ConstantConditions // should not be empty
+            double maxId = parent.column.entries.peekLast().commitId + 2;
+            return parentRank + (parent.commitId + 1) / maxId * mirror;
+        }
     }
 }

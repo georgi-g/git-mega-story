@@ -29,6 +29,18 @@ public class ColumnsSorter {
         return theParentColumn.getColumnStream().collect(Collectors.toList());
     }
 
+    static void sortSecondaryDroppingIntoTheDirectionOfTheirParent(List<Column> columns) {
+        for (int i = 0; i < columns.size(); i++) {
+            Column column = columns.get(i);
+            if (column.rank == null) {
+                int finalI = i;
+                column.rank = () -> finalI;
+            }
+        }
+
+        columns.sort(Comparator.comparing(c -> c.rank.getAsDouble()));
+    }
+
     private static void calculateEntryForCommit(Commit revCommit, List<Branch> branches, Column theParentColumn, int[] branchId, int commitId) {
         //noinspection ConstantConditions
         Map<Commit, Map<Boolean, List<Column>>> columnsWithDanglingParents = theParentColumn.getColumnStream()
@@ -114,13 +126,18 @@ public class ColumnsSorter {
                 branchId[0]++;
             }
         }
-        CommitStorage.newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, branches);
+        HistoryEntry theMainEntry = CommitStorage.newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, branches);
+        // clear the rank for main columns for the case column was a secondary before.
+        columnForFirstParent.rank = null;
 
 
         Column finalColumnForFirstParent = columnForFirstParent;
         Stream.of(mainReferencingEntries, secondaryReferencingEntries).flatMap(Collection::stream).filter(c -> c.column != finalColumnForFirstParent).forEach(h -> {
             // here we have a column having history entries waiting for this commit so we create a backreference
             CommitStorage.newEntryBackReferenceWithoutParent(revCommit, h.column, commitId);
+
+            // update reference infos
+            addParent(h.column, theMainEntry);
         });
 
         // secondary parents may join the dropping columns
@@ -134,7 +151,7 @@ public class ColumnsSorter {
                         List<Column> mainDroppingColumns = columnsWithDanglingParents.get(parent).get(true);
                         Optional<Column> columnToUse;
                         if (secondaryDroppingColumns.isEmpty() && !mainDroppingColumns.isEmpty() && !mayJoinDroppingMainColumn) {
-                            columnToUse = Optional.of(mainDroppingColumns.get(0).createSubColumnBefore(branchId[0]++));
+                            columnToUse = Optional.of(columnForSecondary(mainDroppingColumns.get(0).createSubColumnBefore(branchId[0]++)));
                         } else {
                             columnToUse = Stream.of(
                                     columnsWithDanglingParents.get(parent).get(false),
@@ -145,12 +162,16 @@ public class ColumnsSorter {
                         if (columnToUse.isPresent()) {
                             CommitStorage.newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId);
                             joined = true;
+                            addChild(columnToUse.get(), finalColumnForFirstParent);
                         }
                     }
 
                     if (!joined) {
                         increase.set(true);
-                        CommitStorage.newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
+                        Column column = columnForSecondary(theParentColumn.createSubColumn(branchId[0]));
+                        CommitStorage.newEntryForParent(revCommit, parent, column, TypeOfBackReference.NO, commitId);
+                        addChild(column, finalColumnForFirstParent);
+                        ((Column.ReferenceInfos) column.rank).children.add(finalColumnForFirstParent);
                     }
                 });
 
@@ -158,4 +179,21 @@ public class ColumnsSorter {
             branchId[0]++;
     }
 
+    private static void addChild(Column column, Column child) {
+        if (column.rank != null) {
+            ((Column.ReferenceInfos) column.rank).children.add(child);
+        }
+    }
+
+    private static void addParent(Column column, HistoryEntry parent) {
+        if (column.rank != null) {
+            ((Column.ReferenceInfos) column.rank).parent = parent;
+        }
+    }
+
+    private static Column columnForSecondary(Column column) {
+        column.rank = new Column.ReferenceInfos();
+        return column;
+    }
 }
+
