@@ -77,7 +77,7 @@ public class Main {
         TableRewriting.removeEmptyColumns(table);
 
         System.out.println("create simplified graph");
-        SimpleTextBasedGraph.StringifiedGraph graph = SimpleTextBasedGraph.printGraph(branches, table);
+        SimpleTextBasedGraph.StringifiedGraph graph = SimpleTextBasedGraph.printGraph(table);
 
         System.out.println(graph.header);
 

@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SimpleTextBasedGraph {
-    static StringifiedGraph printGraph(List<Branch> branches, List<List<HistoryEntry>> table) {
+    static StringifiedGraph printGraph(List<List<HistoryEntry>> table) {
 
         StringifiedGraph graph = new StringifiedGraph();
 
@@ -52,7 +52,8 @@ public class SimpleTextBasedGraph {
 
             StringifiedGraph.Row r = new StringifiedGraph.Row();
             r.branchesLine = branchesLine;
-            r.description = someEntry.commitId + " " + someEntry.commit.getSha() + " " + branches.stream().filter(b -> b.commit == finalSomeEntry.commit).map(b -> b.name).collect(Collectors.joining(" "));
+            String branchesNames = someEntry.branches.stream().map(b -> b.name).collect(Collectors.joining(" "));
+            r.description = someEntry.commitId + " " + someEntry.commit.getSha() + " " + branchesNames;
             graph.rows.add(r);
         }
 
