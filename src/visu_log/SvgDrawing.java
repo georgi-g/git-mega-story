@@ -70,7 +70,7 @@ public class SvgDrawing {
         this.descriptionProvider = descriptionProvider;
     }
 
-    public String createSvg(List<List<HistoryEntry>> table) {
+    public String createSvg(List<? extends List<? extends TableEntry>> table) {
 
 
         List<String> result = new ArrayList<>();
@@ -80,7 +80,7 @@ public class SvgDrawing {
 
 
         int maxColumnSoFar = 0;
-        for (List<HistoryEntry> entries : table) {
+        for (List<? extends TableEntry> entries : table) {
             for (int c = 0; c < entries.size(); c++) {
                 if (entries.get(c) != null) {
                     maxColumnSoFar = Math.max(maxColumnSoFar, c);
@@ -89,50 +89,53 @@ public class SvgDrawing {
             for (int c = 0; c < entries.size(); c++) {
                 int colorLine = getColor(colors[c % colors.length].darker());
                 int color = getColor(colors[c % colors.length]);
-                HistoryEntry historyEntry = entries.get(c);
+                TableEntry tableEntry = entries.get(c);
 
-                if (historyEntry != null) {
+                if (tableEntry != null) {
                     maxColumnSoFar = Math.max(maxColumnSoFar, c);
 
-                    switch (historyEntry.typeOfParent) {
-                        case MERGE_MAIN:
-                        case SINGLE_PARENT: {
-                            Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
-                            if (path.isPresent()) {
-                                result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, colorLine));
-                                debugPoints.add(path.get().debugPoints);
-                                maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
+                    for (HistoryEntry historyEntry : tableEntry.getEntries()) {
+
+                        switch (historyEntry.typeOfParent) {
+                            case MERGE_MAIN:
+                            case SINGLE_PARENT: {
+                                Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
+                                if (path.isPresent()) {
+                                    result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, colorLine));
+                                    debugPoints.add(path.get().debugPoints);
+                                    maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
+                                }
+                                break;
                             }
-                            break;
+                            case MERGE_STH:
+                                Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
+
+
+                                if (path.isPresent()) {
+                                    Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, path.get().parentId, path.get().parentColumn);
+                                    int colorLineMerge = getColor(colors[path.get().parentColumn % colors.length].darker());
+                                    result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLineMerge));
+                                    maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
+                                    maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
+                                    debugPoints.add(path.get().debugPoints);
+                                } else {
+                                    int colorLineMerge = getColor(colors[c % colors.length].darker());
+                                    Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, historyEntry.commitId + 2, historyEntry.commitId);
+                                    result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, colorLineMerge));
+                                    maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
+                                }
+                                break;
                         }
-                        case MERGE_STH:
-                            Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
 
-
-                            if (path.isPresent()) {
-                                Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, path.get().parentId, path.get().parentColumn);
-                                int colorLineMerge = getColor(colors[path.get().parentColumn % colors.length].darker());
-                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLineMerge));
-                                maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
-                                maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
-                                debugPoints.add(path.get().debugPoints);
-                            } else {
-                                int colorLineMerge = getColor(colors[c % colors.length].darker());
-                                Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, historyEntry.commitId + 2, historyEntry.commitId);
-                                result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, colorLineMerge));
-                                maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
-                            }
-                            break;
-                    }
-
-                    switch (historyEntry.typeOfParent) {
-                        case MERGE_MAIN:
-                        case INITIAL:
-                        case SINGLE_PARENT:
-                            Commit commit = drawCommit(historyEntry, c, color, maxColumnSoFar);
-                            commits.add(commit.commit);
-                            descriptions.add(commit.description);
-                            break;
+                        switch (historyEntry.typeOfParent) {
+                            case MERGE_MAIN:
+                            case INITIAL:
+                            case SINGLE_PARENT:
+                                Commit commit = drawCommit(historyEntry, c, color, maxColumnSoFar);
+                                commits.add(commit.commit);
+                                descriptions.add(commit.description);
+                                break;
+                        }
                     }
                 }
             }
@@ -172,7 +175,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, List<List<HistoryEntry>> table, int parentId, int parentColumn) {
+    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, List<? extends List<? extends TableEntry>> table, int parentId, int parentColumn) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -275,7 +278,7 @@ public class SvgDrawing {
     }
 
     // optional because if the history was truncated (and without parent rewrite) we have dangling parent references
-    private static Optional<Path> drawMainParentConnection(HistoryEntry entry, int columnPosition, List<List<HistoryEntry>> table) {
+    private static Optional<Path> drawMainParentConnection(HistoryEntry entry, int columnPosition, List<? extends List<? extends TableEntry>> table) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
@@ -397,10 +400,10 @@ public class SvgDrawing {
         String description;
     }
 
-    private static int findMainNodeFor(visu_log.Commit commit, List<HistoryEntry> row) {
+    private static int findMainNodeFor(visu_log.Commit commit, List<? extends TableEntry> row) {
         for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
-            HistoryEntry parent = row.get(parentColumn);
-            if (parent != null && parent.typeOfParent.isMainNode() && parent.commit == commit) {
+            TableEntry parent = row.get(parentColumn);
+            if (parent != null && parent.isMainNodeFor(commit)) {
                 return parentColumn;
             }
         }

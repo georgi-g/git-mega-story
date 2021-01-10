@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class HistoryEntry {
+public class HistoryEntry implements TableEntry {
     public final Commit commit;
     public final Commit parent;
     public final Column column;
@@ -50,5 +50,10 @@ public class HistoryEntry {
 
     public boolean isLabeled() {
         return !branches.isEmpty();
+    }
+
+    @Override
+    public List<HistoryEntry> getEntries() {
+        return List.of(this);
     }
 }

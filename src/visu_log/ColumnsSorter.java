@@ -43,12 +43,11 @@ public class ColumnsSorter {
     }
 
     private static void calculateEntryForCommit(Commit revCommit, List<Branch> branches, Column theParentColumn, int[] branchId, int commitId) {
-        //noinspection ConstantConditions
         Map<Commit, Map<Boolean, List<Column>>> columnsWithDanglingParents = theParentColumn.getColumnStream()
-                .filter(c -> c.entries.size() > 0)
-                .filter(c -> c.entries.peekLast().parent != null)
-                .collect(Collectors.groupingBy(c -> c.entries.peekLast().parent,
-                        Collectors.partitioningBy(h -> h.getLastEntry().joinedForSameParent.stream().anyMatch(hh -> hh.typeOfParent.isMainNode()))));
+                .filter(c -> !c.entries.isEmpty())
+                .filter(c -> c.getLastEntry().parent != null)
+                .collect(Collectors.groupingBy(column -> column.getLastEntry().parent,
+                        Collectors.partitioningBy(column -> column.getLastEntry().joinedForSameParent.stream().anyMatch(hh -> hh.typeOfParent.isMainNode()))));
 
         List<HistoryEntry> mainReferencingEntries = columnsWithDanglingParents.containsKey(revCommit) ? columnsWithDanglingParents.get(revCommit).get(true).stream().map(Column::getLastEntry).collect(Collectors.toList()) : new ArrayList<>();
         List<HistoryEntry> secondaryReferencingEntries = columnsWithDanglingParents.containsKey(revCommit) ? columnsWithDanglingParents.get(revCommit).get(false).stream().map(Column::getLastEntry).collect(Collectors.toList()) : new ArrayList<>();
