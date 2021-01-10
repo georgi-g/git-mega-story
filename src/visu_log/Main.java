@@ -11,6 +11,7 @@ import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -150,6 +151,7 @@ public class Main {
 
         graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
 
+        createSvg(table);
     }
 
     private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
@@ -251,6 +253,50 @@ public class Main {
         }
         return table;
     }
+
+    private static void createSvg(ArrayList<List<HistoryEntry>> table) {
+        String l = "<path d=\"M%d,%d  L%d,%d\" stroke-width=\"2\" stroke=\"#dc4132\"/>";
+        String circle = "<path d=\"M%d,%d C %d,%d,%d,%d, %d,%d\" stroke-width=\"2\" stroke=\"#dc4132\" fill=\"none\"/>";
+        String circleAndLine = "<path d=\"M%d,%d C %d,%d,%d,%d, %d,%d L %d,%d \" stroke-width=\"2\" stroke=\"#dc4132\" fill=\"none\"/>";
+        int topOffset = 10;
+        int leftOffset = 10;
+        int commitWidth = 10;
+        int commitHeight = 12;
+
+
+        List<String> result = new ArrayList<>();
+
+        for (List<HistoryEntry> entries : table) {
+            for (int c = 0; c < entries.size(); c++) {
+                HistoryEntry historyEntry = entries.get(c);
+
+
+                if (historyEntry != null) {
+
+                    switch (historyEntry.typeOfParent) {
+                        case MERGE_MAIN:
+                        case INITIAL:
+                        case SINGLE_PARENT:
+                            String commit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#79c753\" stroke=\"none\"/>";
+                            String commitDots = String.format(commit, leftOffset + c * commitWidth, historyEntry.commitId * commitHeight + topOffset);
+                            result.add(commitDots);
+                    }
+                }
+            }
+        }
+
+
+        String svgFrame = "<svg width=\"4000\" height=\"4000\">\n\n%s\n\n</svg>";
+        String svg = String.format(svgFrame, String.join("\n", result));
+        System.out.println(svg);
+
+        try (FileWriter b = new FileWriter(new File("D:\\Documents\\programming-things\\draw-git-log\\test.html"))) {
+            b.write(svg);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     private static StringifiedGraph printGraph(List<Ref> branches, ArrayList<List<HistoryEntry>> table) {
 
