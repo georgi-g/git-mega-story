@@ -45,6 +45,8 @@ class Column {
     }
 
     public void appendEntry(HistoryEntry he) {
+        if (he.column != this)
+            throw new RuntimeException("HistoryEntry is not allowed to be here.");
         entries.add(he);
     }
 

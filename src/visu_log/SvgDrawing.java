@@ -42,7 +42,7 @@ public class SvgDrawing {
     };
 
 
-    static String createSvg(ArrayList<List<HistoryEntry>> table, List<Branch> branches) {
+    static String createSvg(List<List<HistoryEntry>> table, List<Branch> branches) {
 
 
         List<String> result = new ArrayList<>();
@@ -135,7 +135,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, ArrayList<List<HistoryEntry>> table) {
+    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, List<List<HistoryEntry>> table) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -217,7 +217,7 @@ public class SvgDrawing {
         return res;
     }
 
-    private static Optional<Path> drawMainParentConnection(HistoryEntry entry, int columnPosition, ArrayList<List<HistoryEntry>> table) {
+    private static Optional<Path> drawMainParentConnection(HistoryEntry entry, int columnPosition, List<List<HistoryEntry>> table) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {

@@ -1,6 +1,11 @@
 package visu_log;
 
 class Branch {
-    Commit commmit;
-    String name;
+    final Commit commmit;
+    final String name;
+
+    public Branch(String name, Commit commmit) {
+        this.commmit = commmit;
+        this.name = name;
+    }
 }

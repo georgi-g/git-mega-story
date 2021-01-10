@@ -87,13 +87,13 @@ public class ColumnsSorter {
                 branchId[0]++;
             }
         }
-        newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, commitIsLabeledByABranch);
+        CommitStorage.newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getMyParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, commitIsLabeledByABranch);
 
 
         Column finalColumnForFirstParent = columnForFirstParent;
         Stream.of(mainReferencingEntries, secondaryReferencingEntries).flatMap(Collection::stream).filter(c -> c.column != finalColumnForFirstParent).forEach(h -> {
             // here we have a column having history entries waiting for this commit so we create a backreference
-            newEntryBackReferenceWithoutParent(revCommit, h.column, commitId);
+            CommitStorage.newEntryBackReferenceWithoutParent(revCommit, h.column, commitId);
         });
 
         // secondary parents may join the dropping columns
@@ -116,14 +116,14 @@ public class ColumnsSorter {
                         }
 
                         if (columnToUse.isPresent()) {
-                            newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId, false);
+                            CommitStorage.newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId, false);
                             joined = true;
                         }
                     }
 
                     if (!joined) {
                         increase.set(true);
-                        newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId, false);
+                        CommitStorage.newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId, false);
                     }
                 });
 
@@ -131,27 +131,4 @@ public class ColumnsSorter {
             branchId[0]++;
     }
 
-    private static void newEntryBackReferenceWithoutParent(Commit revCommit, Column theColumn, int commitId) {
-        HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId);
-        historyEntry.backReference = TypeOfBackReference.YES;
-        historyEntry.typeOfParent = TypeOfParent.NONE;
-    }
-
-    private static void newEntryForParent(Commit revCommit, Commit parent, Column theColumn, TypeOfBackReference backReference, int commitId, boolean isLabeled) {
-        HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId, parent, isLabeled);
-
-        switch (revCommit.getParentCount()) {
-            default:
-                historyEntry.typeOfParent = parent == revCommit.getMyParent(0) ? TypeOfParent.MERGE_MAIN : TypeOfParent.MERGE_STH;
-                break;
-            case 1:
-                historyEntry.typeOfParent = TypeOfParent.SINGLE_PARENT;
-                break;
-            case 0:
-                historyEntry.typeOfParent = TypeOfParent.INITIAL;
-                break;
-        }
-
-        historyEntry.backReference = backReference;
-    }
 }

@@ -40,10 +40,7 @@ public class Main {
         List<Branch> branches = branchRefs.stream()
                 .map(b -> {
                     try {
-                        Branch bb = new Branch();
-                        bb.commmit = revWalk.parseCommit(b.getObjectId());
-                        bb.name = b.getName();
-                        return bb;
+                        return new Branch(b.getName(), revWalk.parseCommit(b.getObjectId()));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

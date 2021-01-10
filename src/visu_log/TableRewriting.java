@@ -100,7 +100,7 @@ public class TableRewriting {
             return;
         }
 
-        HistoryEntry dummyEntry = new HistoryEntry(null, Column.createNewList(), -1);
+        HistoryEntry dummyEntry = new HistoryEntry(null, Column.createNewList(), -1, null, null);
 
         fillDummy(table.get(0), dummyEntry);
 
@@ -129,6 +129,14 @@ public class TableRewriting {
         }
 
 
+        repairIds(table, dummyEntry);
+    }
+
+    public static void repairIds(List<List<HistoryEntry>> table) {
+        repairIds(table, null);
+    }
+
+    private static void repairIds(List<List<HistoryEntry>> table, HistoryEntry dummyEntry) {
         for (int row = 0; row < table.size(); row++) {
             List<HistoryEntry> rowEntries = table.get(row);
             for (int i = 0; i < rowEntries.size(); i++) {

@@ -1,9 +1,6 @@
 package visu_log;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TableCreator {
@@ -26,9 +23,11 @@ public class TableCreator {
                     entries.add(null);
                 }
             }
-            if (!commitsFound)
+            if (commitsFound)
+                table.add(entries);
+            else if (droppingColumns.stream().allMatch(Collection::isEmpty)) {
                 break;
-            table.add(entries);
+            }
         }
         return table;
     }
