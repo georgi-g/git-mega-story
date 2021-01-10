@@ -49,6 +49,7 @@ public class Main {
                 .collect(Collectors.toList()));
         revWalk.sort(RevSort.TOPO);
 
+        //noinspection FuseStreamOperations
         List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).collect(Collectors.toList());
 
         master.sort(new CommitComparator(revWalk, false));
@@ -90,6 +91,7 @@ public class Main {
 
         ArrayList<List<HistoryEntry>> table = createTableFromDroppingColumns(columns);
         rewriteSecondaryDropping(table);
+        compressTable(table);
 
         StringifiedGraph graph = printGraph(branches, table);
 
@@ -166,7 +168,7 @@ public class Main {
                 branchId[0]++;
             }
         }
-        newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId);
+        newEntryForParent(revCommit, revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null, columnForFirstParent, backReferenceForFirstParent, commitId, commitIsLabeledByABranch);
 
 
         Column finalColumnForFirstParent = columnForFirstParent;
@@ -195,14 +197,14 @@ public class Main {
                         }
 
                         if (columnToUse.isPresent()) {
-                            newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId);
+                            newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId, false);
                             joined = true;
                         }
                     }
 
                     if (!joined) {
                         increase.set(true);
-                        newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
+                        newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId, false);
                     }
                 });
 
@@ -287,6 +289,43 @@ public class Main {
         }
     }
 
+    private static void compressTable(ArrayList<List<HistoryEntry>> table) {
+        if (table.size() < 2) {
+            return;
+        }
+
+        next_row:
+        for (ListIterator<List<HistoryEntry>> it = table.listIterator(1); it.hasNext(); ) {
+            List<HistoryEntry> previous = it.previous();
+            it.next();
+            List<HistoryEntry> next = it.next();
+
+            long numberOfEntriesInMyRow = next.stream().filter(Objects::nonNull).count();
+            boolean previousMayBeJoined = previous.stream().filter(Objects::nonNull).allMatch(e -> e.typeOfParent == TypeOfParent.SINGLE_PARENT || e.typeOfParent == TypeOfParent.INITIAL);
+
+            if (numberOfEntriesInMyRow > 1 || !previousMayBeJoined)
+                continue;
+
+            for (int i = 0; i < next.size(); i++) {
+                HistoryEntry entry = next.get(i);
+                if (entry != null && previous.get(i) == null && !entry.isLabeled) {
+                    previous.set(i, entry);
+                    it.remove();
+                    continue next_row; // because I wanted to use this
+                }
+            }
+        }
+
+
+        for (int row = 0; row < table.size(); row++) {
+            List<HistoryEntry> rowEntries = table.get(row);
+            for (HistoryEntry e : rowEntries) {
+                if (e != null)
+                    e.commitId = row;
+            }
+        }
+    }
+
     private static int findMainNode(List<Main.HistoryEntry> row) {
         for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
             Main.HistoryEntry parent = row.get(parentColumn);
@@ -355,8 +394,8 @@ public class Main {
         historyEntry.typeOfParent = TypeOfParent.NONE;
     }
 
-    private static void newEntryForParent(RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference, int commitId) {
-        HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId, parent);
+    private static void newEntryForParent(RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference, int commitId, boolean isLabeled) {
+        HistoryEntry historyEntry = new HistoryEntry(revCommit, theColumn, commitId, parent, isLabeled);
 
         switch (revCommit.getParentCount()) {
             default:
@@ -415,10 +454,11 @@ public class Main {
         public final RevCommit commit;
         public final RevCommit parent;
         public final Column column;
-        public final int commitId;
+        public int commitId;
         public TypeOfBackReference backReference;
         public TypeOfParent typeOfParent;
         public List<HistoryEntry> joinedForSameParent = new ArrayList<>();
+        public final boolean isLabeled;
 
         private HistoryEntry(RevCommit commit, Column column, int commitId) {
             this.commit = commit;
@@ -427,9 +467,11 @@ public class Main {
             this.parent = null;
             column.appendEntry(this);
             joinedForSameParent.add(this);
+            isLabeled = false;
         }
 
-        private HistoryEntry(RevCommit commit, Column column, int commitId, RevCommit parent) {
+        private HistoryEntry(RevCommit commit, Column column, int commitId, RevCommit parent, boolean isLabeled) {
+            this.isLabeled = isLabeled;
             joinedForSameParent.add(this);
             this.commit = commit;
             this.column = column;
