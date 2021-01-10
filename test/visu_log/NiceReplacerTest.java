@@ -37,6 +37,7 @@ class NiceReplacerTest {
         assertEquals(" ╰ ┣ ╮  ╯ │ │  ", replacer.turnBranches(" ╰ ┣ ╮  ╰ │ │  "));
         assertEquals(" ╰   ╮  ╰ │ │  ", replacer.turnBranches(" ╰   ╮  ╰ │ │  "));
         assertEquals(" ╰ ┿ ╮  ╯ │ │  ", replacer.turnBranches(" ╰ ┿ ╮  ╰ │ │  "));
+        assertEquals(" ╰ ┷ ╮  ╯ │ │  ", replacer.turnBranches(" ╰ ┷ ╮  ╰ │ │  "));
     }
 
     @Test

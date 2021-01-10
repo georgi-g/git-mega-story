@@ -21,7 +21,7 @@ public class NiceReplacer {
                 .get();
     }
 
-    Pattern spacesInbetweenBranches = Pattern.compile("(?<=[╯┿┣╰╮┯╭╸┏].*)( )(?=(.*[╯┿┣╰╮┯╭╸┏].*))");
+    Pattern spacesInbetweenBranches = Pattern.compile("(?<=[╯┿┣╰╮┯╭╸┏┷].*)( )(?=(.*[╯┿┣╰╮┯╭╸┏┷].*))");
 
     //Pattern findDashIfFollowedByBranch = Pattern.compile("(─)(?!(.*[╯╮].*))");
     public String addConnectionsToBranchRefs(String branchesLine) {
@@ -37,7 +37,7 @@ public class NiceReplacer {
         return doReplace(verticalLinesInbetweenBranchRefs, branchesLine, "\u253c");
     }
 
-    Pattern reverseBranches = Pattern.compile("(?<=[╋┣┿┯].+)(╰)");
+    Pattern reverseBranches = Pattern.compile("(?<=[╋┣┿┯┷].+)(╰)");
 
     public String turnBranches(String s) {
         return doReplace(reverseBranches, s, "╯");
