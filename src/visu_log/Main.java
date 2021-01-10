@@ -165,7 +165,7 @@ public class Main {
                                 (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
 
                         //noinspection ConstantConditions
-                        reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && h.typeOfParent != TypeOfParent.MERGE_STH);
+                        reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (h.typeOfParent != TypeOfParent.MERGE_STH && h.typeOfParent != TypeOfParent.SINGLE_PARENT));
                         // here we have a column having history entries waiting for this commit
                         if (reuseColumn) {
                             //    newEntry(ll, revCommit, h.column);
