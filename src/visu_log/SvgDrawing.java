@@ -1,5 +1,7 @@
 package visu_log;
 
+import org.eclipse.jgit.revwalk.RevCommit;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -30,6 +32,10 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case SINGLE_PARENT:
                             result.add(drawMainParentConnection(historyEntry, c, table));
+                            break;
+                        case MERGE_STH:
+                            result.add(drawSecondaryParentConnection(historyEntry, c, table));
+                            break;
                     }
 
                     switch (historyEntry.typeOfParent) {
@@ -56,43 +62,77 @@ public class SvgDrawing {
         }
     }
 
+
+    static int circleDistanceX = commitWidth;
+    static int circleDistanceY = commitHeight;
+
+
+    private static String drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table) {
+        int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
+        if (mainNodeColumn < 0)
+            throw new RuntimeException("My Main Node not found");
+
+        int theLine = entry.commitId;
+
+        int startX = leftOffset + mainNodeColumn * commitWidth;
+        int startY = topOffset + theLine * commitHeight;
+
+        String m = String.format("M %d, %d ", startX, startY);
+
+        int myX = leftOffset + myColumn * commitWidth;
+        int myY = topOffset + theLine * commitHeight;
+
+        String l1 = String.format("L %d, %d ", myX + circleDistanceX * Integer.signum(mainNodeColumn - myColumn), myY);
+        String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, myY + circleDistanceY);
+
+        return String.format(circleAndLine, m + l1 + c2);
+
+    }
+
     @SuppressWarnings("UnnecessaryLocalVariable")
     private static String drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
-            for (int parentColumn = 0; parentColumn < table.get(parentId).size(); parentColumn++) {
+            int parentColumn = findMainNodeFor(entry.parent, table.get(parentId));
+            if (parentColumn >= 0) {
                 Main.HistoryEntry parent = table.get(parentId).get(parentColumn);
 
-                if (parent != null && parent.typeOfParent.isMainNode() && parent.commit == entry.parent) {
-                    if (parentColumn == columnPosition) {
-                        return String.format(l, leftOffset + columnPosition * commitWidth, topOffset + startingId * commitHeight, leftOffset + columnPosition * commitWidth, topOffset + parentId * commitHeight);
-                    } else if (parentColumn < columnPosition) {
-                        int circleDistanceX = commitWidth;
-                        int circleDistanceY = commitHeight;
+                if (parentColumn == columnPosition) {
+                    return String.format(l, leftOffset + columnPosition * commitWidth, topOffset + startingId * commitHeight, leftOffset + columnPosition * commitWidth, topOffset + parentId * commitHeight);
+                } else if (parentColumn < columnPosition) {
 
-                        int startX = leftOffset + columnPosition * commitWidth;
-                        int startY = topOffset + startingId * commitHeight;
+                    int startX = leftOffset + columnPosition * commitWidth;
+                    int startY = topOffset + startingId * commitHeight;
 
-                        String m = String.format("M %d, %d ", startX, startY);
+                    String m = String.format("M %d, %d ", startX, startY);
 
-                        int parentX = leftOffset + parentColumn * commitWidth;
-                        int parentY = topOffset + parentId * commitHeight;
+                    int parentX = leftOffset + parentColumn * commitWidth;
+                    int parentY = topOffset + parentId * commitHeight;
 
-                        int crossPointX = startX;
-                        int crossPointY = parentY;
+                    int crossPointX = startX;
+                    int crossPointY = parentY;
 
-                        String l1 = String.format("L %d, %d ", crossPointX, crossPointY - circleDistanceY);
-                        String c2 = String.format("Q %d, %d, %d, %d ", crossPointX, crossPointY, crossPointX - circleDistanceX, crossPointY);
-                        String l3 = String.format("L %d, %d ", parentX, parentY);
+                    String l1 = String.format("L %d, %d ", crossPointX, crossPointY - circleDistanceY);
+                    String c2 = String.format("Q %d, %d, %d, %d ", crossPointX, crossPointY, crossPointX - circleDistanceX, crossPointY);
+                    String l3 = String.format("L %d, %d ", parentX, parentY);
 
-                        return String.format(circleAndLine, m + l1 + c2 + l3);
-                    } else {
-                        throw new RuntimeException("Kann ich noch nicht");
-                    }
+                    return String.format(circleAndLine, m + l1 + c2 + l3);
+                } else {
+                    throw new RuntimeException("Kann ich noch nicht");
                 }
             }
         }
         throw new RuntimeException("There was no parent");
+    }
+
+    private static int findMainNodeFor(RevCommit commit, List<Main.HistoryEntry> row) {
+        for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
+            Main.HistoryEntry parent = row.get(parentColumn);
+            if (parent != null && parent.typeOfParent.isMainNode() && parent.commit == commit) {
+                return parentColumn;
+            }
+        }
+        return -1;
     }
 }
