@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Main-Class: visu_log.Main
+Class-Path: org.eclipse.jgit-5.10.0.202012080955-r.jar JavaEWAH-1.1.7.ja
+ r slf4j-api-1.7.30.jar slf4j-simple-1.7.30.jar
+

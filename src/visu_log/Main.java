@@ -11,7 +11,9 @@ import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -49,7 +51,6 @@ public class Main {
                 .collect(Collectors.toList()));
         revWalk.sort(RevSort.TOPO);
 
-        //noinspection FuseStreamOperations
         System.out.println("Retrieve All commits");
         List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).limit(2000).collect(Collectors.toList());
 
@@ -98,18 +99,28 @@ public class Main {
         ArrayList<List<HistoryEntry>> table = createTableFromDroppingColumns(columns);
         System.out.println("Rewrite secondary dropping");
         rewriteSecondaryDropping(table);
-        System.out.println("compress table");
-        compressTable(table);
 
         System.out.println("create simplified graph");
         StringifiedGraph graph = printGraph(branches, table);
 
         System.out.println(graph.header);
 
-        graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
+        PrintStream printWriter = new PrintStream(System.out, true, "UTF-8");
+        graph.rows.forEach(r -> printWriter.println(r.branchesLine + "  " + r.description));
+        printWriter.flush();
+        //graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
+
+        System.out.println("compress table");
+        compressTable(table);
 
         System.out.println("create create svg");
-        SvgDrawing.createSvg(table, branches);
+        String svg = SvgDrawing.createSvg(table, branches);
+
+        try (FileWriter b = new FileWriter(new File("mega-story.html"))) {
+            b.write(svg);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;

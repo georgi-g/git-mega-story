@@ -4,9 +4,6 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.awt.*;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -46,7 +43,7 @@ public class SvgDrawing {
     };
 
 
-    static void createSvg(ArrayList<List<Main.HistoryEntry>> table, List<Ref> branches) {
+    static String createSvg(ArrayList<List<Main.HistoryEntry>> table, List<Ref> branches) {
 
 
         List<String> result = new ArrayList<>();
@@ -149,11 +146,7 @@ public class SvgDrawing {
         svg += script;
         //System.out.println(svg);
 
-        try (FileWriter b = new FileWriter(new File("D:\\Documents\\programming-things\\draw-git-log\\test.html"))) {
-            b.write(svg);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return svg;
     }
 
 

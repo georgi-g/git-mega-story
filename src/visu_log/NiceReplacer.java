@@ -37,13 +37,13 @@ public class NiceReplacer {
         return doReplace(verticalLinesInbetweenBranchRefs, branchesLine, "\u253c");
     }
 
-    Pattern reverseBranches = Pattern.compile("(?<=[╋┣┿┯┷].+)(╰)");
+    Pattern reverseBranches = Pattern.compile("(?<=[╋┣┿┯┷╸].+)(╰)");
 
     public String turnBranches(String s) {
         return doReplace(reverseBranches, s, "╯");
     }
 
-    Pattern reverseMergePoints = Pattern.compile("(?<=[╋┣┿┯┏].*)(╭)");
+    Pattern reverseMergePoints = Pattern.compile("(?<=[╋┣┿┯┏╸].*)(╭)");
 
     public String turnMergePoints(String s) {
         return doReplace(reverseMergePoints, s, "╮");

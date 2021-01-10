@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact name="mega-history">
+    <output-path>$PROJECT_DIR$/out/artifacts/mega_history</output-path>
+    <root id="root">
+      <element id="library" level="project" name="org.eclipse.jgit:org.eclipse.jgit:5.10.0.202012080955-r" />
+      <element id="archive" name="mega-history.jar">
+        <element id="module-output" name="MegaStory" />
+      </element>
+      <element id="library" level="project" name="Simple Logging Facade for Java:1.7.30" />
+    </root>
+  </artifact>
+</component>
