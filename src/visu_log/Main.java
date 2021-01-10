@@ -138,30 +138,31 @@ public class Main {
         master.forEach(revCommit -> {
             final boolean[] inserted = {false};
 
-            new ArrayList<>(ll).forEach(h -> {
-                if (revCommit == h.parent) {
-                    if (true) {
-                        //if (revCommit.getParentCount() <= 1) {
-                        if (!inserted[0]) {
-                            newEntry(ll, revCommit, h.column);
-                            inserted[0] = true;
+            List<HistoryEntry> referencingEntries = theParentColumn.getColumnStream()
+                    .map(c -> c.entries.peekLast())
+                    .filter(Objects::nonNull)
+                    .filter(e -> e.parent == revCommit)
+                    .collect(Collectors.toList());
+
+            boolean createColumnForEachNewMultiParentCommit = false;
+
+            referencingEntries
+                    .forEach(h -> {
+                        //if (true) {
+                        if (!createColumnForEachNewMultiParentCommit || revCommit.getParentCount() <= 1) {
+                            if (!inserted[0]) {
+                                newEntry(ll, revCommit, h.column);
+                                inserted[0] = true;
+                            } else {
+                                newEntryBackReference(ll, revCommit, h.column);
+                            }
                         } else {
                             newEntryBackReference(ll, revCommit, h.column);
                         }
-                    } else {
-                        newEntryBackReference(ll, revCommit, h.column);
-                    }
-                }
-            });
+                    });
 
             if (!inserted[0])
                 newEntry(ll, revCommit, theParentColumn.createSubColumn(branchId[0]++));
-
-
-//            List<Ref> containingBranches = branches.stream().filter(b -> b.getObjectId().equals(revCommit.toObjectId())).collect(Collectors.toList());
-//            containingBranches.forEach(b -> {
-//                newEntry(ll, revCommit, theParentColumn.createSubColumn(branchId[0]++));
-//            });
 
         });
 
@@ -301,7 +302,7 @@ public class Main {
         int branchId;
         List<Column> subColumns = new ArrayList<>();
         Column nextColumn;
-        List<HistoryEntry> entries = new ArrayList<>();
+        Deque<HistoryEntry> entries = new ArrayDeque<>();
 
         Stream<Column> getColumnStream() {
             if (nextColumn != null)
