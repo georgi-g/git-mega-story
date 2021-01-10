@@ -32,7 +32,7 @@ public class SvgDrawing {
 
     static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String labeledCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"7\" fill=\"#%06x\" stroke=\"#000000\"/>";
-    static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#000000\"/>";
     static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>";
     static String rect = "<rect class=\"rect_branch\" rx=\"5\" ry=\"5\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#%06x\" stroke=\"#%06x\"/>";
 
@@ -76,6 +76,7 @@ public class SvgDrawing {
         List<String> result = new ArrayList<>();
         List<String> commits = new ArrayList<>();
         List<String> descriptions = new ArrayList<>();
+        List<String> debugPoints = new ArrayList<>();
 
 
         int maxColumnSoFar = 0;
@@ -100,6 +101,7 @@ public class SvgDrawing {
                             Optional<Path> path = drawMainParentConnection(historyEntry, c, table);
                             if (path.isPresent()) {
                                 result.add(String.format(SvgDrawing.path, path.get().startPoint + path.get().path, colorLine));
+                                debugPoints.add(path.get().debugPoints);
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                             }
                             break;
@@ -113,6 +115,7 @@ public class SvgDrawing {
                                 result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLineMerge));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
+                                debugPoints.add(path.get().debugPoints);
                             } else {
                                 Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, historyEntry.commitId + 2, historyEntry.commitId);
                                 result.add(String.format(SvgDrawing.pathMerge, secondaryStartPath.startPoint + secondaryStartPath.path, colorLineMerge));
@@ -136,6 +139,7 @@ public class SvgDrawing {
 
         result.addAll(commits);
         result.addAll(descriptions);
+        //result.addAll(debugPoints);
         int diagramSize = table.size() * commitHeight + topOffset * 2;
 
         String svgFrame = "<style type=\"text/css\">\n" +
@@ -293,6 +297,7 @@ public class SvgDrawing {
 
         String startPoint = String.format("M %d, %d ", startX, startY);
         String m = "";
+        String debugPoints = "";
 
 
         if (parentColumn == columnPosition) {
@@ -300,7 +305,6 @@ public class SvgDrawing {
         } else {
 
             if (Math.abs(parentColumn - columnPosition) > 1) {
-                String debugPoints = "";
 
                 int parentIsRight = Integer.signum(parentColumn - columnPosition);
 
@@ -338,11 +342,11 @@ public class SvgDrawing {
                 m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
                 m += String.format("T %d, %d ", parentX, parentY);
 
-                //debugPoints += String.format(debugPoint, cp1X_Pre, cp1Y_Pre);
-                //debugPoints += String.format(debugPoint, nextPointX, nextPointY);
-                //debugPoints += String.format(debugPoint, nextPointX_, nextPointY_);
-                //debugPoints += String.format(debugPoint, cp1X, cp1Y);
-                //debugPoints += String.format(debugPoint, splitPointX, splitPointY);
+                debugPoints += String.format(debugPoint, cp1X_Pre, cp1Y_Pre);
+                debugPoints += String.format(debugPoint, nextPointX, nextPointY);
+                debugPoints += String.format(debugPoint, nextPointX_, nextPointY_);
+                debugPoints += String.format(debugPoint, cp1X, cp1Y);
+                debugPoints += String.format(debugPoint, splitPointX, splitPointY);
 
 
             } else {
@@ -375,6 +379,7 @@ public class SvgDrawing {
         path.path = m;
         path.parentColumn = parentColumn;
         path.parentId = parentId;
+        path.debugPoints = debugPoints;
         return path;
     }
 
@@ -383,6 +388,7 @@ public class SvgDrawing {
         String path;
         int parentColumn;
         int parentId;
+        String debugPoints;
     }
 
     private static class Commit {
