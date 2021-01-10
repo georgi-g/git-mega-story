@@ -180,20 +180,40 @@ public class SvgDrawing {
 
         String m = String.format("M %d, %d ", startX, startY);
 
-        int mergeTransX = startX + commitWidth / 2 * myColumnIsRight;
-        int mergeTransY = startY + incomingSecondaryMergeTransitionHeight;
+        String mm = "";
 
-        String c1 = String.format("Q %d, %d, %d, %d ", (mergeTransX + startX) / 2, mergeTransY, mergeTransX, mergeTransY);
+        if (Math.abs(myColumn - mainNodeColumn) > 1) {
+            int mX1 = startX + circleDistanceX * myColumnIsRight;
 
-        int myX = leftOffset + myColumn * commitWidth;
-        int myY = mergeTransY;
+            int mergeTransX = (startX + commitWidth * myColumnIsRight);
+            int mergeTransY = startY + incomingSecondaryMergeTransitionHeight;
 
-        String l1 = String.format("L %d, %d ", myX - (circleDistanceX - incomingSecondaryMergeTransitionHeight) * myColumnIsRight, myY);
-        String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, startY + circleDistanceY);
+
+            String c1 = String.format("Q %d, %d, %d, %d ", mX1, mergeTransY, mergeTransX, mergeTransY);
+
+            int endX = leftOffset + myColumn * commitWidth;
+            int endY = topOffset + (theLine + 1) * commitHeight;
+
+            int myX = endX - (commitWidth * myColumnIsRight);
+            int myY = mergeTransY;
+
+            String l1 = String.format("L %d, %d ", myX, myY);
+            String c2 = String.format("Q %d, %d, %d, %d ", endX, myY, endX, endY);
+            mm += c1 + l1 + c2;
+        } else {
+            int endY = topOffset + (theLine + 1) * commitHeight;
+
+            int myX = leftOffset + myColumn * commitWidth;
+            int myY = endY - commitHeight * 3 / 4;
+
+            String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, endY);
+            mm += c2;
+        }
+
 
         Path path = new Path();
         path.startPoint = m;
-        path.path = c1 + l1 + c2;
+        path.path = mm;
         path.parentColumn = myColumn;
 
         return path;
