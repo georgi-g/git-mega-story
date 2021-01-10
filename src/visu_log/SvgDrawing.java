@@ -1,7 +1,5 @@
 package visu_log;
 
-import org.eclipse.jgit.lib.Ref;
-
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -44,7 +42,7 @@ public class SvgDrawing {
     };
 
 
-    static String createSvg(ArrayList<List<HistoryEntry>> table, List<Ref> branches) {
+    static String createSvg(ArrayList<List<HistoryEntry>> table, List<Branch> branches) {
 
 
         List<String> result = new ArrayList<>();
@@ -164,11 +162,11 @@ public class SvgDrawing {
 
     }
 
-    private static Commit drawCommit(HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color, int maximalFilledColumnSoFar) {
+    private static Commit drawCommit(HistoryEntry historyEntry, int columnPosition, List<Branch> branches, int color, int maximalFilledColumnSoFar) {
         String commit;
         List<String> branchesOnCommit = branches.stream()
-                .filter(b -> b.getObjectId().equals(historyEntry.commit.toObjectId()))
-                .map(Ref::getName)
+                .filter(b -> b.commmit == historyEntry.commit)
+                .map(b -> b.name)
                 .map(s -> s.replace("refs/heads/", ""))
                 .collect(Collectors.toList());
 
@@ -176,7 +174,7 @@ public class SvgDrawing {
         int startY = historyEntry.commitId * commitHeight + topOffset;
         int labelX = leftOffset + maximalFilledColumnSoFar * commitWidth + 10;
 
-        String theClass = "c" + historyEntry.commit.getId().abbreviate(7).name();
+        String theClass = "c" + historyEntry.commit.getSha();
         if (!branchesOnCommit.isEmpty()) {
             commit = String.format(labeledCommit, theClass, startX, startY, color);
         } else {
@@ -197,7 +195,7 @@ public class SvgDrawing {
                         "            </g>\n" +
                         "            </g>\n";
 
-        String description = String.format(commitDescription, startX, startY, theClass, c.getRGB() & 0xffffff, stroke.getRGB() & 0xffffff, theClass + " " + historyEntry.commit.getShortMessage());
+        String description = String.format(commitDescription, startX, startY, theClass, c.getRGB() & 0xffffff, stroke.getRGB() & 0xffffff, theClass + " " + historyEntry.commit.getSubject());
 
 
         if (!branchesOnCommit.isEmpty()) {

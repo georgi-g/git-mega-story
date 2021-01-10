@@ -1,7 +1,5 @@
 package visu_log;
 
-import org.eclipse.jgit.lib.Ref;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -9,7 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SimpleTextBasedGraph {
-    static StringifiedGraph printGraph(List<Ref> branches, ArrayList<List<HistoryEntry>> table) {
+    static StringifiedGraph printGraph(List<Branch> branches, ArrayList<List<HistoryEntry>> table) {
 
         StringifiedGraph graph = new StringifiedGraph();
 
@@ -54,7 +52,7 @@ public class SimpleTextBasedGraph {
 
             StringifiedGraph.Row r = new StringifiedGraph.Row();
             r.branchesLine = branchesLine;
-            r.description = someEntry.commitId + " " + someEntry.commit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(finalSomeEntry.commit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
+            r.description = someEntry.commitId + " " + someEntry.commit.getSha() + " " + branches.stream().filter(b -> b.commmit == finalSomeEntry.commit).map(b -> b.name).collect(Collectors.joining(" "));
             graph.rows.add(r);
         }
 

@@ -24,8 +24,8 @@ public class Main {
         Git g = Git.open(args.length > 0 ? new File(args[0]) : new File("."));
         Repository repository = g.getRepository();
         System.out.println("Loaded ...");
-        List<Ref> branches = g.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
-        for (Ref branch : branches) {
+        List<Ref> branchRefs = g.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
+        for (Ref branch : branchRefs) {
             System.out.println("Branch:" + branch);
 //            System.out.println(" Name: " + branch.getName());
 //            System.out.println(" ID: " + branch.getObjectId());
@@ -37,21 +37,24 @@ public class Main {
 
         final MyRevWalk revWalk = new MyRevWalk(repository);
 
-        revWalk.markStart(branches.stream()
-                .map(Ref::getObjectId)
+        List<Branch> branches = branchRefs.stream()
                 .map(b -> {
                     try {
-                        return revWalk.parseCommit(b);
+                        Branch bb = new Branch();
+                        bb.commmit = revWalk.parseCommit(b.getObjectId());
+                        bb.name = b.getName();
+                        return bb;
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                 })
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
+
+        revWalk.myMarkStart(branches.stream().map(b -> b.commmit).collect(Collectors.toList()));
         revWalk.sort(RevSort.TOPO);
 
         System.out.println("Retrieve All commits");
-        List<Commit> master = StreamSupport.stream(revWalk.mySpliterator(), false).limit(2000).collect(Collectors.toList());
-        Object object = master.get(0);
+        List<? extends Commit> master = StreamSupport.stream(revWalk.mySpliterator(), false).limit(2000).collect(Collectors.toList());
 
         System.out.println("Sorting everything");
         master.sort(new CommitComparator(revWalk, false));
@@ -59,7 +62,8 @@ public class Main {
         System.out.println("Log fetched");
 
 
-        printAllCommits(master);
+        //noinspection unchecked
+        printAllCommits((List<? extends RevCommit>) master);
 
         System.out.println("Sort Commits into Columns");
         List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(branches, master);

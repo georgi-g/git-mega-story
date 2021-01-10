@@ -1,23 +1,17 @@
 package visu_log;
 
-import org.eclipse.jgit.lib.AnyObjectId;
-import org.eclipse.jgit.revwalk.RevCommit;
-
-import java.util.Arrays;
 import java.util.List;
 
-public class Commit extends RevCommit {
-    protected Commit(AnyObjectId id) {
-        super(id);
-    }
+public interface Commit {
 
-    public Commit getMyParent(int nth) {
-        return (Commit) super.getParent(nth);
-    }
+    int getParentCount();
 
-    public List<Commit> getMyParents() {
-        //noinspection unchecked
-        return (List<Commit>) (List<?>) Arrays.asList(super.getParents());
-    }
+    Commit getMyParent(int nth);
+
+    List<Commit> getMyParents();
+
+    String getSha();
+
+    String getSubject();
 }
 

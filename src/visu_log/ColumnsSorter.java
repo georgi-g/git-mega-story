@@ -1,7 +1,5 @@
 package visu_log;
 
-import org.eclipse.jgit.lib.Ref;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -14,7 +12,7 @@ public class ColumnsSorter {
     static boolean mayJoinDroppingMainColumn = false;
     static boolean forceCreateNewColumnsForLabeledCommits = true;
 
-    static List<Column> sortCommitsIntoColumns(List<Ref> branches, List<Commit> commits) {
+    static List<Column> sortCommitsIntoColumns(List<Branch> branches, List<? extends Commit> commits) {
         Column theParentColumn = Column.createNewList();
 
         final int[] branchId = {0};
@@ -29,7 +27,7 @@ public class ColumnsSorter {
         return theParentColumn.getColumnStream().collect(Collectors.toList());
     }
 
-    private static void calculateEntryForCommit(Commit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
+    private static void calculateEntryForCommit(Commit revCommit, List<Branch> branches, Column theParentColumn, int[] branchId, int commitId) {
         //noinspection ConstantConditions
         Map<Commit, Map<Boolean, List<Column>>> columnsWithDanglingParents = theParentColumn.getColumnStream()
                 .filter(c -> c.entries.size() > 0)
@@ -41,7 +39,7 @@ public class ColumnsSorter {
         List<HistoryEntry> secondaryReferencingEntries = columnsWithDanglingParents.containsKey(revCommit) ? columnsWithDanglingParents.get(revCommit).get(false).stream().map(Column::getLastEntry).collect(Collectors.toList()) : new ArrayList<>();
         long numberOfMainReferencingEntries = mainReferencingEntries.size();
 
-        boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.getObjectId().equals(revCommit.getId()));
+        boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.commmit == revCommit);
 
         // having here list of columngs with entries referencing me (either having a main node or not)
         // having here list of columngs with referencing one of my parents (either having a main node or not)
@@ -144,7 +142,7 @@ public class ColumnsSorter {
 
         switch (revCommit.getParentCount()) {
             default:
-                historyEntry.typeOfParent = parent == revCommit.getParent(0) ? TypeOfParent.MERGE_MAIN : TypeOfParent.MERGE_STH;
+                historyEntry.typeOfParent = parent == revCommit.getMyParent(0) ? TypeOfParent.MERGE_MAIN : TypeOfParent.MERGE_STH;
                 break;
             case 1:
                 historyEntry.typeOfParent = TypeOfParent.SINGLE_PARENT;

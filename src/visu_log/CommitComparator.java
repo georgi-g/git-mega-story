@@ -7,7 +7,7 @@ import org.eclipse.jgit.revwalk.filter.RevFilter;
 import java.io.IOException;
 import java.util.Comparator;
 
-class CommitComparator implements Comparator<RevCommit> {
+class CommitComparator implements Comparator<Commit> {
 
     private final RevWalk revWalk;
     private boolean fancySort;
@@ -24,6 +24,10 @@ class CommitComparator implements Comparator<RevCommit> {
     }
 
     @Override
+    public int compare(Commit o1, Commit o2) {
+        return compare((RevCommit) o1, (RevCommit) o2);
+    }
+
     public int compare(RevCommit o1, RevCommit o2) {
         try {
             if (o1 == o2) {
