@@ -51,10 +51,7 @@ public class Main {
 
         List<RevCommit> master = StreamSupport.stream(revWalk.spliterator(), false).collect(Collectors.toList());
 
-        //noinspection ConstantConditions
-        if (true) {
-            master.sort(new CommitComparator(revWalk));
-        }
+        master.sort(new CommitComparator(revWalk, false));
 
         System.out.println("Log fetched");
 //        master.forEach(revCommit ->

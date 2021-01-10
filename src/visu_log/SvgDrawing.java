@@ -35,11 +35,12 @@ public class SvgDrawing {
     static String rect = "<rect class=\"rect_branch\" rx=\"10\" ry=\"10\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\" fill=\"none\" />\n";
 
     static Color[] colors = new Color[]{
-            new Color(62, 149, 255),
-            Color.GREEN,
-            Color.ORANGE,
-            Color.RED,
-            Color.MAGENTA
+            new Color(74, 156, 255),
+            new Color(236, 62, 255),
+            new Color(77, 255, 77),
+            new Color(255, 193, 100),
+            new Color(255, 81, 81),
+            new Color(255, 233, 91),
     };
 
 

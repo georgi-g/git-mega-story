@@ -10,9 +10,11 @@ import java.util.Comparator;
 class CommitComparator implements Comparator<RevCommit> {
 
     private final RevWalk revWalk;
+    private boolean fancySort;
 
-    CommitComparator(RevWalk revWalk) {
+    CommitComparator(RevWalk revWalk, boolean fancySort) {
         this.revWalk = revWalk;
+        this.fancySort = fancySort;
     }
 
     private RevCommit getFirstParentOfAllParents(RevCommit c) {
@@ -54,16 +56,18 @@ class CommitComparator implements Comparator<RevCommit> {
                 revWalk.setRevFilter(RevFilter.ALL);
             }
 
+            if (fancySort) {
 
-            if (o1.getParents().length == 1 && o2.getParents().length > 1) {
-                for (int i = 1; i < o2.getParents().length; i++) {
-                    if (o2.getParent(i) == o1.getParent(0))
-                        return -1;
-                }
-            } else if (o2.getParents().length == 1 && o1.getParents().length > 1) {
-                for (int i = 1; i < o1.getParents().length; i++) {
-                    if (o1.getParent(i) == o2.getParent(0))
-                        return 1;
+                if (o1.getParents().length == 1 && o2.getParents().length > 1) {
+                    for (int i = 1; i < o2.getParents().length; i++) {
+                        if (o2.getParent(i) == o1.getParent(0))
+                            return -1;
+                    }
+                } else if (o2.getParents().length == 1 && o1.getParents().length > 1) {
+                    for (int i = 1; i < o1.getParents().length; i++) {
+                        if (o1.getParent(i) == o2.getParent(0))
+                            return 1;
+                    }
                 }
             }
 
