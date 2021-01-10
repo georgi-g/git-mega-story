@@ -220,7 +220,18 @@ public class Main {
 
         List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
 
-        System.out.println(columns.stream().map(c -> Integer.toString(c.branchId)).collect(Collectors.joining("  ")));
+        StringifiedGraph graph = printGraph(branches, master, columns);
+
+        System.out.println(graph.header);
+
+        graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
+    }
+
+    private static StringifiedGraph printGraph(List<Ref> branches, List<RevCommit> master, List<Column> columns) {
+
+        StringifiedGraph graph = new StringifiedGraph();
+
+        graph.header = columns.stream().map(c -> Integer.toString(c.branchId)).collect(Collectors.joining("  "));
 
 
         Set<Object> columnsHavingCommits = new HashSet<>();
@@ -254,23 +265,16 @@ public class Main {
             String branchesLine = brancPic.toString();
             branchesLine = new NiceReplacer().fulReplace(branchesLine);
 
-            System.out.print(branchesLine + "  " + revCommit.getId().getName());
-            System.out.println(" " + branches.stream().filter(b -> b.getObjectId().equals(revCommit.getId())).map(Ref::getName).collect(Collectors.joining(" ")));
+            StringifiedGraph.Row r = new StringifiedGraph.Row();
+            r.branchesLine = branchesLine;
+            r.description = revCommit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(revCommit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
+            graph.rows.add(r);
         });
         if (droppingColumns.stream().anyMatch(c -> !c.isEmpty())) {
             throw new RuntimeException("Not all commits were consumed.");
         }
 
-        /*
-         * BB | B
-         * x  |
-         *  x | x
-         * x
-         * xx
-         * xx
-         * xx
-         */
-
+        return graph;
     }
 
     private static void newEntryBackReferenceWithoutParent(LinkedList<HistoryEntry> ll, RevCommit revCommit, Column theColumn) {
@@ -375,6 +379,17 @@ public class Main {
         public void appendEntry(HistoryEntry he) {
             entries.add(he);
         }
+    }
+
+}
+
+class StringifiedGraph {
+    String header;
+    List<Row> rows = new ArrayList<>();
+
+    static class Row {
+        String branchesLine;
+        String description;
     }
 
 }
