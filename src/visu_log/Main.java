@@ -289,38 +289,73 @@ public class Main {
         }
     }
 
+    private static void fillDummy(List<HistoryEntry> row, HistoryEntry dummy) {
+        int mainNode = findMainNode(row);
+
+        boolean fill = false;
+        for (int i = 0; i < mainNode; i++) {
+            if (fill && row.get(i) == null) {
+                row.set(i, dummy);
+            }
+            if (row.get(i) != null) {
+                fill = true;
+            }
+        }
+
+        fill = false;
+        for (int i = row.size() - 1; i > mainNode; i--) {
+            if (fill && row.get(i) == null) {
+                row.set(i, dummy);
+            }
+            if (row.get(i) != null) {
+                fill = true;
+            }
+        }
+    }
+
     private static void compressTable(ArrayList<List<HistoryEntry>> table) {
         if (table.size() < 2) {
             return;
         }
 
-        next_row:
+        HistoryEntry dummyEntry = new HistoryEntry(null, Column.createNewList(), -1);
+
+        fillDummy(table.get(0), dummyEntry);
+
+
         for (ListIterator<List<HistoryEntry>> it = table.listIterator(1); it.hasNext(); ) {
             List<HistoryEntry> previous = it.previous();
             it.next();
             List<HistoryEntry> next = it.next();
 
-            long numberOfEntriesInMyRow = next.stream().filter(Objects::nonNull).count();
-            boolean previousMayBeJoined = previous.stream().filter(Objects::nonNull).allMatch(e -> e.typeOfParent == TypeOfParent.SINGLE_PARENT || e.typeOfParent == TypeOfParent.INITIAL);
+            fillDummy(next, dummyEntry);
 
-            if (numberOfEntriesInMyRow > 1 || !previousMayBeJoined)
+            boolean rowIsJoinable = true;
+            for (int i = 0; i < next.size(); i++) {
+                rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
+                rowIsJoinable &= next.get(i) == null || !next.get(i).isLabeled;
+            }
+
+            if (!rowIsJoinable)
                 continue;
 
             for (int i = 0; i < next.size(); i++) {
                 HistoryEntry entry = next.get(i);
-                if (entry != null && previous.get(i) == null && !entry.isLabeled) {
+                if (entry != null) {
                     previous.set(i, entry);
-                    it.remove();
-                    continue next_row; // because I wanted to use this
                 }
             }
+            it.remove();
         }
 
 
         for (int row = 0; row < table.size(); row++) {
             List<HistoryEntry> rowEntries = table.get(row);
-            for (HistoryEntry e : rowEntries) {
-                if (e != null)
+            for (int i = 0; i < rowEntries.size(); i++) {
+                HistoryEntry e = rowEntries.get(i);
+                if (e == dummyEntry) {
+                    rowEntries.set(i, null);
+                } else if (e != null)
                     e.commitId = row;
             }
         }
@@ -333,7 +368,7 @@ public class Main {
                 return parentColumn;
             }
         }
-        return -1;
+        throw new RuntimeException("Main Node not found");
     }
 
     private static StringifiedGraph printGraph(List<Ref> branches, ArrayList<List<HistoryEntry>> table) {
