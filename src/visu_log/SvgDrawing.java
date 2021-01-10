@@ -74,7 +74,11 @@ public class SvgDrawing {
         }
 
 
-        String svgFrame = "<svg width=\"4000\" height=\"%d\">\n\n%s\n\n</svg>";
+        String svgFrame = "<style type=\"text/css\">\n" +
+                "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 5;}\n" +
+                "\tpath:hover {stroke-width: 4;}\n" +
+                "</style>\n" +
+                "<svg width=\"4000\" height=\"%d\">\n\n%s\n\n</svg>";
         String svg = String.format(svgFrame, String.join("\n", result));
         System.out.println(svg);
 
