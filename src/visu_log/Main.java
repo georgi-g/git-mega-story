@@ -323,6 +323,19 @@ public class Main {
         }
     }
 
+    private static boolean isJoinable(List<HistoryEntry> previous, List<HistoryEntry> next) {
+        boolean rowIsJoinable = true;
+        boolean nextIsLabeled = false;
+        boolean prevIsLabeled = false;
+        for (int i = 0; i < next.size(); i++) {
+            rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
+            nextIsLabeled |= next.get(i) != null && next.get(i).isLabeled;
+            prevIsLabeled |= previous.get(i) != null && previous.get(i).isLabeled;
+        }
+
+        return rowIsJoinable && !(nextIsLabeled && prevIsLabeled);
+    }
+
     private static void compressTable(ArrayList<List<HistoryEntry>> table) {
         if (table.size() < 2) {
             return;
@@ -334,22 +347,17 @@ public class Main {
 
 
         for (ListIterator<List<HistoryEntry>> it = table.listIterator(1); it.hasNext(); ) {
-            List<HistoryEntry> previous = it.previous();
-            it.next();
             List<HistoryEntry> next = it.next();
 
             fillDummy(next, dummyEntry);
 
-            boolean rowIsJoinable = true;
-            boolean nextIsLabeled = false;
-            boolean prevIsLabeled = false;
-            for (int i = 0; i < next.size(); i++) {
-                rowIsJoinable &= previous.get(i) == null || next.get(i) == null;
-                nextIsLabeled |= next.get(i) != null && !next.get(i).isLabeled;
-                prevIsLabeled |= previous.get(i) != null && previous.get(i).isLabeled;
+            List<HistoryEntry> previous = null;
+
+            for (int idPrevious = it.previousIndex() - 1; idPrevious >= 0 && isJoinable(table.get(idPrevious), next); idPrevious--) {
+                previous = table.get(idPrevious);
             }
 
-            if (!rowIsJoinable || (nextIsLabeled && prevIsLabeled))
+            if (previous == null)
                 continue;
 
             for (int i = 0; i < next.size(); i++) {

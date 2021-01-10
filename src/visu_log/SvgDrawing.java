@@ -85,6 +85,10 @@ public class SvgDrawing {
                                 result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path + path.get().path, colorLine));
                                 maxColumnSoFar = Math.max(path.get().parentColumn, maxColumnSoFar);
                                 maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
+                            } else {
+                                result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path, colorLine));
+                                maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
+                                maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
                             }
                             break;
                     }
@@ -101,13 +105,16 @@ public class SvgDrawing {
         }
 
         result.addAll(commits);
+        int diagramSize = table.size() * commitHeight + topOffset * 2;
 
         String svgFrame = "<style type=\"text/css\">\n" +
                 "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 5;}\n" +
                 "\tpath:hover {stroke-width: 4;}\n" +
                 "\ttext {font-size: x-small; font-family: Arial, Helvetica, sans-serif}\n" +
                 "</style>\n" +
-                "<svg width=\"4000\" height=\"%d\">\n\n%s\n\n</svg>";
+                "<svg width=\"4000\" height=\"%d\">" +
+                "\n\n%s\n\n" +
+                "</svg>";
 
         String script = "<script type=\"application/ecmascript\"> " +
                 "    let x = document.getElementsByClassName(\"commit_branches\");\n" +
@@ -136,7 +143,7 @@ public class SvgDrawing {
                 "</script>";
 
 
-        String svg = String.format(svgFrame, String.join("\n", result));
+        String svg = String.format(svgFrame, diagramSize, String.join("\n", result));
         svg += script;
         //System.out.println(svg);
 
