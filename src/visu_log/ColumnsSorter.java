@@ -33,7 +33,8 @@ public class ColumnsSorter {
     static void sortSecondaryDroppingIntoTheDirectionOfTheirParent(List<Column> columns) {
         for (int i = 0; i < columns.size(); i++) {
             Column column = columns.get(i);
-            if (column.rank == null) {
+            // fixme later: better repair dangling columns before entering this function.
+            if (column.rank == null || ((Column.ReferenceInfos) column.rank).parent == null) {
                 int finalI = i;
                 column.rank = () -> finalI;
             }
