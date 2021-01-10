@@ -27,7 +27,7 @@ public class SvgDrawing {
     private static final int labelOffset = 20;
     private static final int commitDescriptionOffset = 10;
 
-    static String path = "\t<path d=\"%s\" fill=\"none\" stroke=\"#%06x\"/>";
+    static String path = "\t<path class=\"first-commit-path\" d=\"%s\" fill=\"none\" stroke=\"#%06x\"/>";
     static String pathMerge = "\t<path d=\"%s\" stroke-dasharray=\"4 1\" fill=\"none\" stroke=\"#%06x\"/>";
 
     static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
@@ -44,14 +44,15 @@ public class SvgDrawing {
             "            </g>\n" +
             "        </g>\n";
 
-    static Color[] colors = new Color[]{
-            new Color(74, 156, 255),
-            new Color(236, 62, 255),
-            new Color(77, 255, 77),
-            new Color(255, 193, 100),
-            new Color(255, 81, 81),
-            new Color(255, 233, 91),
-    };
+    static Color[] colors;
+
+    static {
+        int num = 23;
+        colors = new Color[num];
+        for (int i = 0; i < colors.length; i++) {
+            colors[i] = Color.getHSBColor(((float) i * 3 / num), 0.71f, 1);
+        }
+    }
 
     static Color fillDescription = new Color(217, 233, 255);
     static Color strokeDescription = new Color(0, 90, 201);
@@ -137,14 +138,16 @@ public class SvgDrawing {
         int diagramSize = table.size() * commitHeight + topOffset * 2;
 
         String svgFrame = "<style type=\"text/css\">\n" +
+                "\tcircle {stroke-width: 2;}\n" +
                 "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 9;}\n" +
                 "\tpath {stroke-width: 1;}\n" +
+                "\t.first-commit-path {stroke-width: 2;}\n" +
                 "\tpath:hover {stroke-width: 4;}\n" +
                 "\ttext {font-family: Arial, Helvetica, sans-serif}\n" +
                 "\t.commit_g > g {display: none;}\n" +
                 "\tg.show_group {display: unset;}\n" +
                 "\tg.show_group_click {display: unset;}\n" +
-                "\t.show_group_click > rect {stroke-width:1.5;}\n" +
+                "\t.show_group_click > rect {stroke-width:2;}\n" +
                 "</style>\n" +
                 "<svg width=\"4000\" height=\"%d\">" +
                 "\n\n%s\n\n" +
