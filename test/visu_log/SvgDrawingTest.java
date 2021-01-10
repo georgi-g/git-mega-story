@@ -98,6 +98,38 @@ class SvgDrawingTest {
         showResults(entries);
     }
 
+    @Test
+    void createSvgCompressedOverlappingMerge() {
+
+        Commit commitF1 = TestCommit.createCommit();
+        Commit commitF2 = TestCommit.createCommit();
+        Commit mergeCommitFeature = TestCommit.createCommit(commitF1, commitF2);
+
+        Commit commitM1 = TestCommit.createCommit();
+        Commit commitM2 = TestCommit.createCommit();
+        Commit mergeCommitMaster = TestCommit.createCommit(commitM1, commitM2);
+
+        Column cm1 = new Column();
+        Column cm2 = new Column();
+
+        Column cf1 = new Column();
+        Column cf2 = new Column();
+
+        CommitStorage.newEntryForParent(mergeCommitMaster, commitM1, cm1, TypeOfBackReference.NO, 0);
+        CommitStorage.newEntryForParent(mergeCommitMaster, commitM2, cm2, TypeOfBackReference.NO, 0);
+        CommitStorage.newEntryForParent(commitM1, null, cm1, TypeOfBackReference.YES, 1);
+        CommitStorage.newEntryForParent(commitM2, null, cm2, TypeOfBackReference.YES, 1);
+
+        CommitStorage.newEntryForParent(mergeCommitFeature, commitF1, cf1, TypeOfBackReference.NO, 0);
+        CommitStorage.newEntryForParent(mergeCommitFeature, commitF2, cf2, TypeOfBackReference.NO, 0);
+        CommitStorage.newEntryForParent(commitF1, null, cf1, TypeOfBackReference.YES, 1);
+        CommitStorage.newEntryForParent(commitF2, null, cf2, TypeOfBackReference.YES, 1);
+
+        List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(cf1, cm1, cf2, cm2));
+
+        showResults(entries);
+    }
+
     private void showResults(List<List<HistoryEntry>> entries) {
         Path output = tmpDir.resolve("out.html");
         System.out.println(output.toUri());
