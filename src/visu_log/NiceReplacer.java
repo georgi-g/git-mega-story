@@ -21,24 +21,23 @@ public class NiceReplacer {
                 .get();
     }
 
-    Pattern spacesInbetweenBranches = Pattern.compile("(?<=[╯┿┣╰╮┯╭┏].*)( )(?=(.*[╯┿┣╰╮┯╭┏].*))");
+    Pattern spacesInbetweenBranches = Pattern.compile("(?<=[╯┿┣╰╮┯╭╸┏].*)( )(?=(.*[╯┿┣╰╮┯╭╸┏].*))");
 
     //Pattern findDashIfFollowedByBranch = Pattern.compile("(─)(?!(.*[╯╮].*))");
     public String addConnectionsToBranchRefs(String branchesLine) {
         Matcher matcher = spacesInbetweenBranches.matcher(branchesLine);
-        String result = matcher.replaceAll("─");
-        return result;
+        return matcher.replaceAll("─");
         //if (matcher.matches())
         //    branchesLine = branchesLine.substring(0, matcher.start(1)) + matcher.group(1).replaceAll(".", " ");
     }
 
-    Pattern verticalLinesInbetweenBranchRefs = Pattern.compile("(?<=[╯┿┣╰╮┯╭┏].*)(│)(?=.*[╯┿┣╰╮┯╭┏])");
+    Pattern verticalLinesInbetweenBranchRefs = Pattern.compile("(?<=[╯┿┣╰╮┯╭╸┏].*)(│)(?=.*[╯┿┣╰╮┯╭╸┏])");
 
     public String doStrokes(String branchesLine) {
         return doReplace(verticalLinesInbetweenBranchRefs, branchesLine, "\u253c");
     }
 
-    Pattern reverseBranches = Pattern.compile("(?<=[╋┣┿┯].*)(╰)");
+    Pattern reverseBranches = Pattern.compile("(?<=[╋┣┿┯].+)(╰)");
 
     public String turnBranches(String s) {
         return doReplace(reverseBranches, s, "╯");

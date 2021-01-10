@@ -110,6 +110,7 @@ public class Main {
             for (RevCommit parent : revCommit.getParents()) {
                 System.out.println("- Parent Name " + parent.getId().getName());
             }
+            //noinspection unused
             PersonIdent authorIdent = revCommit.getAuthorIdent();
 //            System.out.println("author " + authorIdent.getName());
 //            System.out.println("message " + revCommit.getShortMessage());
@@ -153,6 +154,7 @@ public class Main {
 
 
             boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
+            boolean alwaysCreateNewColumns = false;
             boolean joinDroppingColumns = true;
             boolean forceCreateNewColumnsForLabeledCommits = true;
 
@@ -167,7 +169,8 @@ public class Main {
                         //noinspection ConstantConditions
                         reuseColumn &= !(forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (h.typeOfParent != TypeOfParent.MERGE_STH && h.typeOfParent != TypeOfParent.SINGLE_PARENT));
                         // here we have a column having history entries waiting for this commit
-                        if (reuseColumn) {
+                        //noinspection ConstantConditions
+                        if (reuseColumn && !alwaysCreateNewColumns) {
                             //    newEntry(ll, revCommit, h.column);
                             RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
                             if (parent != null)
