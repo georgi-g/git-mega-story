@@ -142,11 +142,14 @@ public class Main {
 
         List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
 
-        StringifiedGraph graph = printGraph(branches, master, columns);
+        ArrayList<List<HistoryEntry>> table = createTableFromDroppingColumns(columns);
+
+        StringifiedGraph graph = printGraph(branches, table);
 
         System.out.println(graph.header);
 
         graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
+
     }
 
     private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
@@ -164,7 +167,7 @@ public class Main {
         boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
         boolean alwaysCreateNewColumns = false;
         boolean joinDroppingColumns = true;
-        boolean forceCreateNewColumnsForLabeledCommits = true;
+        boolean forceCreateNewColumnsForLabeledCommits = false;
 
         final boolean[] alreadyReused = {false};
         Set<RevCommit> usedParents = new HashSet<>();
@@ -223,34 +226,61 @@ public class Main {
         }
     }
 
-    private static StringifiedGraph printGraph(List<Ref> branches, List<RevCommit> master, List<Column> columns) {
+    private static ArrayList<List<HistoryEntry>> createTableFromDroppingColumns(List<Column> columns) {
+        List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
+
+        ArrayList<List<HistoryEntry>> table = new ArrayList<>();
+        for (int currentLineNumber = 0; ; currentLineNumber++) {
+            boolean commitsFound = false;
+            List<HistoryEntry> entries = new ArrayList<>();
+            for (Deque<HistoryEntry> c : droppingColumns) {
+                if (!c.isEmpty() && c.peek().commitId < currentLineNumber)
+                    throw new RuntimeException("Wrong structure. Commit Ids in a column must increase");
+
+                HistoryEntry historyEntry = !c.isEmpty() && c.peek().commitId == currentLineNumber ? c.poll() : null;
+                if (historyEntry != null) {
+                    commitsFound = true;
+                    entries.add(historyEntry);
+                } else {
+                    entries.add(null);
+                }
+            }
+            if (!commitsFound)
+                break;
+            table.add(entries);
+        }
+        return table;
+    }
+
+    private static StringifiedGraph printGraph(List<Ref> branches, ArrayList<List<HistoryEntry>> table) {
 
         StringifiedGraph graph = new StringifiedGraph();
 
-        graph.header = columns.stream().map(c -> Integer.toString(c.branchId)).collect(Collectors.joining("  "));
+        //graph.header = columns.stream().map(c -> Integer.toString(c.branchId)).collect(Collectors.joining("  "));
+        graph.header = "no header today";
 
 
         Set<Object> columnsHavingCommits = new HashSet<>();
 
-        List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
+        //List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
 
-        master.forEach(revCommit -> {
-            int commitId = -1;
-            boolean commitDidAppear = false;
+        for (List<HistoryEntry> entries : table) {
+            HistoryEntry someEntry = null;
             StringBuilder brancPic = new StringBuilder();
-            for (Deque<HistoryEntry> c : droppingColumns) {
-
-                HistoryEntry historyEntry = !c.isEmpty() && c.peek().commit == revCommit ? c.poll() : null;
+            for (int c = 0; c < entries.size(); c++) {
+                HistoryEntry historyEntry = entries.get(c);
 
                 if (historyEntry != null) {
-                    commitDidAppear = true;
-                    commitId = historyEntry.commitId;
-                    columnsHavingCommits.add(c);
+                    someEntry = historyEntry;
+                    if (historyEntry.typeOfParent == TypeOfParent.INITIAL || historyEntry.typeOfParent == TypeOfParent.NONE)
+                        columnsHavingCommits.remove(c);
+                    else
+                        columnsHavingCommits.add(c);
 
                     brancPic.append(historyEntry.typeOfParent.getSymbol(historyEntry.backReference));
 
                 } else {
-                    if (!c.isEmpty() && columnsHavingCommits.contains(c))
+                    if (columnsHavingCommits.contains(c))
                         brancPic.append("│");
                     else {
                         brancPic.append(" ");
@@ -258,18 +288,17 @@ public class Main {
                 }
                 brancPic.append("  ");
             }
-            if (!commitDidAppear)
+
+            HistoryEntry finalSomeEntry = someEntry;
+            if (someEntry == null)
                 throw new RuntimeException("Commit did not Appear");
             String branchesLine = brancPic.toString();
             branchesLine = new NiceReplacer().fulReplace(branchesLine);
 
             StringifiedGraph.Row r = new StringifiedGraph.Row();
             r.branchesLine = branchesLine;
-            r.description = commitId + " " + revCommit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(revCommit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
+            r.description = someEntry.commitId + " " + someEntry.commit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(finalSomeEntry.commit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
             graph.rows.add(r);
-        });
-        if (droppingColumns.stream().anyMatch(c -> !c.isEmpty())) {
-            throw new RuntimeException("Not all commits were consumed.");
         }
 
         return graph;
