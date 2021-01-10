@@ -57,12 +57,17 @@ public class SvgDrawing {
 
                     switch (historyEntry.typeOfParent) {
                         case MERGE_MAIN:
-                        case SINGLE_PARENT:
-                            result.add(drawMainParentConnection(historyEntry, c, table, colorLine));
+                        case SINGLE_PARENT: {
+                            Path path = drawMainParentConnection(historyEntry, c, table);
+                            result.add(String.format(SvgDrawing.path, path.startPoint + path.path, colorLine));
                             break;
+                        }
                         case MERGE_STH:
-                            result.add(drawSecondaryParentConnection(historyEntry, c, table, colorLine));
-                            result.add(drawMainParentConnection(historyEntry, c, table, colorLine));
+                            Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, colorLine);
+
+                            Path path = drawMainParentConnection(historyEntry, c, table);
+                            result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path + path.path, colorLine));
+
                             break;
                     }
 
@@ -126,7 +131,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static String drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table, int color) {
+    private static Path drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table, int color) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -144,7 +149,11 @@ public class SvgDrawing {
         String l1 = String.format("L %d, %d ", myX + circleDistanceX * Integer.signum(mainNodeColumn - myColumn), myY);
         String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, myY + circleDistanceY);
 
-        return String.format(path, m + l1 + c2, color);
+        Path path = new Path();
+        path.startPoint = m;
+        path.path = l1 + c2;
+
+        return path;
 
     }
 
@@ -170,21 +179,22 @@ public class SvgDrawing {
         return result;
     }
 
-    private static String drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table, int color) {
+    private static Path drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
             int parentColumn = findMainNodeFor(entry.parent, table.get(parentId));
             if (parentColumn >= 0) {
 
-                return getPathToParent(entry, columnPosition, color, startingId, parentId, parentColumn);
+
+                return getPathToParent(entry, columnPosition, startingId, parentId, parentColumn);
             }
         }
         throw new RuntimeException("There was no parent");
     }
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static String getPathToParent(Main.HistoryEntry entry, int columnPosition, int color, int startingId, int parentId, int parentColumn) {
+    private static Path getPathToParent(Main.HistoryEntry entry, int columnPosition, int startingId, int parentId, int parentColumn) {
         int startX = leftOffset + columnPosition * commitWidth;
         int startY = topOffset + startingId * commitHeight + (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
         int parentX = leftOffset + parentColumn * commitWidth;
@@ -261,7 +271,15 @@ public class SvgDrawing {
             }
 
         }
-        return String.format(path, startPoint + m, color);
+        Path path = new Path();
+        path.startPoint = startPoint;
+        path.path = m;
+        return path;
+    }
+
+    private static class Path {
+        String startPoint;
+        String path;
     }
 
     private static int findMainNodeFor(RevCommit commit, List<Main.HistoryEntry> row) {
