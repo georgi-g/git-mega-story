@@ -32,7 +32,7 @@ public class SvgDrawing {
     static String labeledCommit = "\t<circle cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
     static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n";
-    static String rect = "<rect class=\"rect_branch\" rx=\"10\" ry=\"10\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\" fill=\"none\" />\n";
+    static String rect = "<rect class=\"rect_branch\" rx=\"5\" ry=\"5\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"#eeffe4\" stroke=\"#307f00\" fill=\"none\" />\n";
 
     static Color[] colors = new Color[]{
             new Color(74, 156, 255),
@@ -51,26 +51,36 @@ public class SvgDrawing {
         List<String> commits = new ArrayList<>();
 
 
+        int maxColumnSoFar = 0;
         for (List<Main.HistoryEntry> entries : table) {
+            for (int c = 0; c < entries.size(); c++) {
+                if (entries.get(c) != null) {
+                    maxColumnSoFar = Math.max(maxColumnSoFar, c);
+                }
+            }
             for (int c = 0; c < entries.size(); c++) {
                 int colorLine = colors[c % colors.length].darker().getRGB() & 0xffffff;
                 int color = colors[c % colors.length].getRGB() & 0xffffff;
                 Main.HistoryEntry historyEntry = entries.get(c);
 
                 if (historyEntry != null) {
+                    maxColumnSoFar = Math.max(maxColumnSoFar, c);
 
                     switch (historyEntry.typeOfParent) {
                         case MERGE_MAIN:
                         case SINGLE_PARENT: {
                             Path path = drawMainParentConnection(historyEntry, c, table);
                             result.add(String.format(SvgDrawing.path, path.startPoint + path.path, colorLine));
+                            maxColumnSoFar = Math.max(path.parentColumn, maxColumnSoFar);
                             break;
                         }
                         case MERGE_STH:
-                            Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table, colorLine);
+                            Path secondaryStartPath = drawSecondaryParentConnection(historyEntry, c, table);
 
                             Path path = drawMainParentConnection(historyEntry, c, table);
                             result.add(String.format(SvgDrawing.path, secondaryStartPath.startPoint + secondaryStartPath.path + path.path, colorLine));
+                            maxColumnSoFar = Math.max(path.parentColumn, maxColumnSoFar);
+                            maxColumnSoFar = Math.max(secondaryStartPath.parentColumn, maxColumnSoFar);
 
                             break;
                     }
@@ -79,7 +89,7 @@ public class SvgDrawing {
                         case MERGE_MAIN:
                         case INITIAL:
                         case SINGLE_PARENT:
-                            commits.add(drawCommit(historyEntry, c, branches, color));
+                            commits.add(drawCommit(historyEntry, c, branches, color, maxColumnSoFar));
                             break;
                     }
                 }
@@ -91,6 +101,7 @@ public class SvgDrawing {
         String svgFrame = "<style type=\"text/css\">\n" +
                 "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 5;}\n" +
                 "\tpath:hover {stroke-width: 4;}\n" +
+                "\ttext {font-size: x-small; font-family: Arial, Helvetica, sans-serif}\n" +
                 "</style>\n" +
                 "<svg width=\"4000\" height=\"%d\">\n\n%s\n\n</svg>";
 
@@ -100,10 +111,8 @@ public class SvgDrawing {
                 "    \n" +
                 "    for (let i = 0; i < x.length; i++) {\n" +
                 "        let currentXDelta = -1;\n" +
-                "        console.info(\"blub\" + x[i]);\n" +
                 "        let groupNodes = x[i].querySelectorAll('g');\n" +
                 "        for (let gNode = 0; gNode < groupNodes.length; gNode++) {\n" +
-                "            console.info(\"blub\" + x[i]);\n" +
                 "            let textNode = groupNodes[gNode].querySelector('text');\n" +
                 "            let rectNode = groupNodes[gNode].querySelector('rect');\n" +
                 "            if (!textNode || !rectNode)\n" +
@@ -114,10 +123,10 @@ public class SvgDrawing {
                 "                textNode.setAttribute(\"x\", currentXDelta);\n" +
                 "            let f = textNode.getBBox();\n" +
                 "            currentXDelta = f.x + f.width + 5;\n" +
-                "            rectNode.setAttribute(\"width\", f.width);\n" +
-                "            rectNode.setAttribute(\"height\", f.height);\n" +
-                "            rectNode.setAttribute(\"x\", f.x);\n" +
-                "            rectNode.setAttribute(\"y\", f.y);\n" +
+                "            rectNode.setAttribute(\"width\", f.width + 4);\n" +
+                "            rectNode.setAttribute(\"height\", f.height + 4);\n" +
+                "            rectNode.setAttribute(\"x\", f.x - 2);\n" +
+                "            rectNode.setAttribute(\"y\", f.y - 2);\n" +
                 "        }\n" +
                 "    }\n" +
                 "</script>";
@@ -136,7 +145,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static Path drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table, int color) {
+    private static Path drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -157,12 +166,13 @@ public class SvgDrawing {
         Path path = new Path();
         path.startPoint = m;
         path.path = l1 + c2;
+        path.parentColumn = myColumn;
 
         return path;
 
     }
 
-    private static String drawCommit(Main.HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color) {
+    private static String drawCommit(Main.HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color, int maximalFilledColumnSoFar) {
         String result = "";
         List<String> branchesOnCommit = branches.stream()
                 .filter(b -> b.getObjectId().equals(historyEntry.commit.toObjectId()))
@@ -172,6 +182,7 @@ public class SvgDrawing {
 
         int startX = leftOffset + columnPosition * commitWidth;
         int startY = historyEntry.commitId * commitHeight + topOffset;
+        int labelX = leftOffset + maximalFilledColumnSoFar * commitWidth + 10;
 
         if (!branchesOnCommit.isEmpty()) {
             result += String.format(labeledCommit, startX, startY, color);
@@ -183,8 +194,8 @@ public class SvgDrawing {
             StringBuilder sb = new StringBuilder("<g class=\"commit_branches\">");
             for (String branchName : branchesOnCommit) {
                 sb.append("<g>")
-                        .append(String.format(rect, startX + 60, startY, 200, 200))
-                        .append(String.format(label, startX + 60, startY, branchName))
+                        .append(String.format(rect, labelX, startY, 20, 20))
+                        .append(String.format(label, labelX, startY, branchName))
                         .append("</g>");
             }
             sb.append("</g>");
@@ -296,12 +307,14 @@ public class SvgDrawing {
         Path path = new Path();
         path.startPoint = startPoint;
         path.path = m;
+        path.parentColumn = parentColumn;
         return path;
     }
 
     private static class Path {
         String startPoint;
         String path;
+        int parentColumn;
     }
 
     private static int findMainNodeFor(RevCommit commit, List<Main.HistoryEntry> row) {
