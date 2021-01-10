@@ -13,6 +13,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -171,30 +172,33 @@ public class Main {
         boolean joinDroppingColumns = true;
         boolean forceCreateNewColumnsForLabeledCommits = true;
 
-        final boolean[] alreadyReused = {false};
+        //noinspection ConstantConditions
+        boolean needNewBranchBecauseLabeled = forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (numberOfMainReferencingEntries > 1);
+
+        final boolean[] firstParentIsPlaced = {false};
         Set<RevCommit> usedParents = new HashSet<>();
+        AtomicReference<Column> firstColumnWithAPureBackreference = new AtomicReference<>();
         referencingEntries.forEach(h -> {
             //noinspection ConstantConditions
-            boolean reuseColumn = !alreadyReused[0] &&
+            boolean placeBackreferenceAndFirstParentInOneColumn = !firstParentIsPlaced[0] &&
                     (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
 
+            placeBackreferenceAndFirstParentInOneColumn &= !needNewBranchBecauseLabeled;
             //noinspection ConstantConditions
-            boolean forceNew = forceCreateNewColumnsForLabeledCommits && commitIsLabeledByABranch && (numberOfMainReferencingEntries > 1);
-            reuseColumn &= !forceNew;
-            //noinspection ConstantConditions
-            reuseColumn &= !alwaysCreateNewColumns;
+            placeBackreferenceAndFirstParentInOneColumn &= !alwaysCreateNewColumns;
 
             // here we have a column having history entries waiting for this commit
-            if (reuseColumn) {
+            if (placeBackreferenceAndFirstParentInOneColumn) {
                 //    newEntry(ll, revCommit, h.column);
                 RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
                 if (parent != null)
                     usedParents.add(parent);
                 newEntryForParent(revCommit, parent, h.column, TypeOfBackReference.YES, commitId);
-                alreadyReused[0] = true;
+                firstParentIsPlaced[0] = true;
             } else {
                 // here we create a backreference, since we found a column waiting for this commit
                 newEntryBackReferenceWithoutParent(revCommit, h.column, commitId);
+                firstColumnWithAPureBackreference.compareAndExchange(null, h.column);
             }
         });
 
@@ -207,6 +211,7 @@ public class Main {
                     .forEach(parent -> {
                         Column dangling = columnsWithDanglingParents.get(parent).get(0);
                         newEntryForParent(revCommit, parent, dangling, TypeOfBackReference.YES, commitId);
+                        firstColumnWithAPureBackreference.compareAndExchange(null, dangling);
                         usedParents.add(parent);
                     });
         }
@@ -218,13 +223,22 @@ public class Main {
             for (RevCommit parent : revCommit.getParents()) {
                 if (!usedParents.contains(parent)) {
                     increase = true;
-                    newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
+                    if (parent == revCommit.getParent(0)) {
+                        Column column = firstColumnWithAPureBackreference.get();
+                        if (column == null) {
+                            newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
+                        } else {
+                            newEntryForParent(revCommit, parent, column.createSubColumnBefore(branchId[0]), TypeOfBackReference.NO, commitId);
+                        }
+                    } else {
+                        newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
+                    }
                 }
             }
             if (increase)
                 branchId[0]++;
         } else {
-            if (!alreadyReused[0]) {
+            if (!firstParentIsPlaced[0]) {
                 newEntryForParent(revCommit, null, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
                 branchId[0]++;
             }
@@ -431,6 +445,10 @@ public class Main {
             sc.branchId = branchId;
             subColumns.add(sc);
             return sc;
+        }
+
+        public Column createSubColumnBefore(int i) {
+            return createSubColumn(i);
         }
 
         public void appendEntry(HistoryEntry he) {
