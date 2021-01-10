@@ -60,6 +60,10 @@ public class SimpleTextBasedGraph {
         return graph;
     }
 
+    static String getString(StringifiedGraph graph) {
+        return graph.rows.stream().map(r -> r.branchesLine + " " + r.description).collect(Collectors.joining("\n"));
+    }
+
     static class StringifiedGraph {
         String header;
         List<Row> rows = new ArrayList<>();

@@ -78,7 +78,7 @@ public class ColumnsSorter {
         //     column for each of the other parents // may be new, may be referencing same but main, may be referencing same but secondary
 
         Column columnForFirstParent = null;
-        TypeOfBackReference backReferenceForFirstParent;
+        TypeOfBackReference backReferenceForFirstParent = TypeOfBackReference.YES;
         if (!(needNewMainBranchBecauseLabeled || needBranchBecauseMultiParent || alwaysCreateNewColumns))
             // try to join a referencing column if new branch is not required
             columnForFirstParent = Stream.of(mainReferencingEntries, secondaryReferencingEntries)
@@ -93,6 +93,8 @@ public class ColumnsSorter {
             if (myRank.isPresent()) {
                 Optional<Column> higherRankColumn = theParentColumn.getColumnStream()
                         .filter(c -> {
+                            // this is an error to check only the first entry in column, because column might get a main column later. we need to check the minimal rank of all labled
+
                             // get the column, that is higher rank than one of the actual. (the columns that have to be after current)
                             if (c.entries.isEmpty() || !c.entries.peekFirst().typeOfParent.isMainNode())
                                 return false;
@@ -106,16 +108,20 @@ public class ColumnsSorter {
                         .findFirst();
                 if (higherRankColumn.isPresent()) {
                     columnForFirstParent = higherRankColumn.get().createSubColumnBefore(branchId[0]);
+                    backReferenceForFirstParent = TypeOfBackReference.NO;
                     branchId[0]++;
                 }
             }
         }
 
         // if needNewMainBranchBecauseLabeled stil may use column of secondary references
-        if (columnForFirstParent == null && needNewMainBranchBecauseLabeled)
+        if (columnForFirstParent == null && needNewMainBranchBecauseLabeled) {
             columnForFirstParent = secondaryReferencingEntries.stream().findFirst().map(h -> h.column).orElse(null);
+        }
 
-        backReferenceForFirstParent = columnForFirstParent != null ? TypeOfBackReference.YES : TypeOfBackReference.NO;
+        if (columnForFirstParent == null)
+            backReferenceForFirstParent = TypeOfBackReference.NO;
+
 
         // do not use or could not use dropping column for first parent
         if (columnForFirstParent == null) {

@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ColumnsSorterTest {
     @TempDir
@@ -95,5 +95,59 @@ class ColumnsSorterTest {
         assertSame(ref1, columns.get(2));
         assertSame(ref2, columns.get(3));
         assertSame(parentColumn, columns.get(4));
+    }
+
+    @Test
+    void sortIntoColumns() {
+        Commit commit = TestCommit.createCommit("M");
+        Commit commit2 = TestCommit.createCommit("M", commit);
+
+        Branch b = new Branch("B", commit2, 0);
+
+        List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(List.of(b), List.of(commit2, commit));
+        columns.forEach(this::validateColumn);
+
+
+        System.out.println(SimpleTextBasedGraph.getString(SimpleTextBasedGraph.printGraph(TableCreator.createTableFromDroppingColumns(columns))));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    void backReferenceForNewColumnsIfBranchHasLowerRank() {
+        Commit commit = TestCommit.createCommit("M");
+        Commit commit2 = TestCommit.createCommit("M", commit);
+
+        Commit commit3 = TestCommit.createCommit("M", commit2);
+
+        Branch b = new Branch("B", commit2, 0);
+        Branch b2 = new Branch("B", commit3, 1);
+
+        List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(List.of(b, b2), List.of(commit3, commit2, commit));
+        System.out.println(SimpleTextBasedGraph.getString(SimpleTextBasedGraph.printGraph(TableCreator.createTableFromDroppingColumns(columns))));
+
+        assertSame(commit2, columns.get(1).entries.peekFirst().commit);
+        assertSame(TypeOfBackReference.NO, columns.get(1).entries.peekFirst().backReference);
+
+        columns.forEach(this::validateColumn);
+    }
+
+    void validateColumn(Column column) {
+        List<HistoryEntry> entries = new ArrayList<>(column.entries);
+        for (int i = 0; i < entries.size(); i++) {
+            HistoryEntry entry = entries.get(i);
+            if (i < entries.size() - 1) {
+                assertTrue(entry.typeOfParent.hasParent());
+                assertSame((entries.get(i + 1).commit), entry.parent);
+            } else {
+                assertFalse(entry.typeOfParent.hasParent());
+            }
+
+            if (i > 0) {
+                assertEquals(TypeOfBackReference.YES, entry.backReference);
+                assertSame((entries.get(i - 1).parent), entry.commit);
+            } else {
+                assertSame(TypeOfBackReference.NO, entry.backReference);
+            }
+        }
     }
 }
