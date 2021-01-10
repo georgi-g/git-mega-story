@@ -71,7 +71,7 @@ public class Main {
         rewriteSecondaryDropping(table);
 
         System.out.println("create simplified graph");
-        StringifiedGraph graph = printGraph(branches, table);
+        SimpleTextBasedGraph.StringifiedGraph graph = SimpleTextBasedGraph.printGraph(branches, table);
 
         System.out.println(graph.header);
 
@@ -308,7 +308,7 @@ public class Main {
                         }
                     }
 
-                    parentIsPresent[i] = e.typeOfParent.hasParent;
+                    parentIsPresent[i] = e.typeOfParent.hasParent();
                 }
             }
         }
@@ -397,66 +397,14 @@ public class Main {
         }
     }
 
-    private static int findMainNode(List<Main.HistoryEntry> row) {
+    private static int findMainNode(List<HistoryEntry> row) {
         for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
-            Main.HistoryEntry parent = row.get(parentColumn);
+            HistoryEntry parent = row.get(parentColumn);
             if (parent != null && parent.typeOfParent.isMainNode()) {
                 return parentColumn;
             }
         }
         throw new RuntimeException("Main Node not found");
-    }
-
-    private static StringifiedGraph printGraph(List<Ref> branches, ArrayList<List<HistoryEntry>> table) {
-
-        StringifiedGraph graph = new StringifiedGraph();
-
-        //graph.header = columns.stream().map(c -> Integer.toString(c.branchId)).collect(Collectors.joining("  "));
-        graph.header = "no header today";
-
-
-        Set<Object> columnsHavingCommits = new HashSet<>();
-
-        //List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
-
-        for (List<HistoryEntry> entries : table) {
-            HistoryEntry someEntry = null;
-            StringBuilder brancPic = new StringBuilder();
-            for (int c = 0; c < entries.size(); c++) {
-                HistoryEntry historyEntry = entries.get(c);
-
-                if (historyEntry != null) {
-                    someEntry = historyEntry;
-                    if (historyEntry.typeOfParent == TypeOfParent.INITIAL || historyEntry.typeOfParent == TypeOfParent.NONE)
-                        columnsHavingCommits.remove(c);
-                    else
-                        columnsHavingCommits.add(c);
-
-                    brancPic.append(historyEntry.typeOfParent.getSymbol(historyEntry.backReference));
-
-                } else {
-                    if (columnsHavingCommits.contains(c))
-                        brancPic.append("│");
-                    else {
-                        brancPic.append(" ");
-                    }
-                }
-                brancPic.append("  ");
-            }
-
-            HistoryEntry finalSomeEntry = someEntry;
-            if (someEntry == null)
-                throw new RuntimeException("Commit did not Appear");
-            String branchesLine = brancPic.toString();
-            branchesLine = new NiceReplacer().fulReplace(branchesLine);
-
-            StringifiedGraph.Row r = new StringifiedGraph.Row();
-            r.branchesLine = branchesLine;
-            r.description = someEntry.commitId + " " + someEntry.commit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(finalSomeEntry.commit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
-            graph.rows.add(r);
-        }
-
-        return graph;
     }
 
     private static void newEntryBackReferenceWithoutParent(RevCommit revCommit, Column theColumn, int commitId) {
@@ -483,141 +431,5 @@ public class Main {
         historyEntry.backReference = backReference;
     }
 
-    public enum TypeOfParent {
-        SINGLE_PARENT("┿", "┯", true, true),
-        INITIAL("┷", "╸", true, false),
-        MERGE_STH("╭", "╭", false, true),
-        MERGE_MAIN("┣", "┏", true, true),
-        NONE("╰", "x", false, false);
-
-        private final String withBackReference;
-        private final String withoutBackReference;
-        private final boolean isMainNode;
-        private final boolean hasParent;
-
-        TypeOfParent(String withBackReference, String withoutBackReference, boolean isMainNode, boolean hasParent) {
-            this.withBackReference = withBackReference;
-            this.withoutBackReference = withoutBackReference;
-            this.isMainNode = isMainNode;
-            this.hasParent = hasParent;
-        }
-
-        boolean isMainNode() {
-            return isMainNode;
-        }
-
-        String getSymbol(TypeOfBackReference backReference) {
-            switch (backReference) {
-                case NO:
-                    return withoutBackReference;
-                case YES:
-                default:
-                    return withBackReference;
-            }
-        }
-    }
-
-    private enum TypeOfBackReference {
-        YES, NO
-    }
-
-    public static class HistoryEntry {
-        public final RevCommit commit;
-        public final RevCommit parent;
-        public final Column column;
-        public int commitId;
-        public TypeOfBackReference backReference;
-        public TypeOfParent typeOfParent;
-        public List<HistoryEntry> joinedForSameParent = new ArrayList<>();
-        public final boolean isLabeled;
-
-        private HistoryEntry(RevCommit commit, Column column, int commitId) {
-            this.commit = commit;
-            this.column = column;
-            this.commitId = commitId;
-            this.parent = null;
-            column.appendEntry(this);
-            joinedForSameParent.add(this);
-            isLabeled = false;
-        }
-
-        private HistoryEntry(RevCommit commit, Column column, int commitId, RevCommit parent, boolean isLabeled) {
-            this.isLabeled = isLabeled;
-            joinedForSameParent.add(this);
-            this.commit = commit;
-            this.column = column;
-            this.commitId = commitId;
-            this.parent = parent;
-            HistoryEntry maybeJoined = column.entries.peekLast();
-            if (maybeJoined != null && maybeJoined.parent != null && maybeJoined.parent != commit) {
-                if (maybeJoined.parent != this.parent) {
-                    throw new RuntimeException("Don't want to join foreign columns yet.");
-                } else {
-                    joinedForSameParent.addAll(maybeJoined.joinedForSameParent);
-                }
-            }
-            column.appendEntry(this);
-        }
-    }
-
-    private static class Column {
-        int branchId;
-        List<Column> subColumns = new ArrayList<>();
-        Deque<HistoryEntry> entries = new ArrayDeque<>();
-
-        Stream<Column> getColumnStream() {
-            return subColumns.stream()
-                    .flatMap(c -> {
-                        if (c != this)
-                            return c.getColumnStream();
-                        else
-                            return Stream.of(c);
-                    });
-        }
-
-        Column() {
-            subColumns.add(this);
-        }
-
-        static Column createNewList() {
-            return new Column();
-        }
-
-        Column createSubColumn(int branchId) {
-            Column sc = new Column();
-            sc.branchId = branchId;
-            subColumns.add(sc);
-            return sc;
-        }
-
-        public Column createSubColumnBefore(int branchId) {
-            int myIndex = subColumns.indexOf(this);
-            Column sc = new Column();
-            sc.branchId = branchId;
-            subColumns.add(myIndex, sc);
-            return sc;
-        }
-
-        public void appendEntry(HistoryEntry he) {
-            entries.add(he);
-        }
-
-        public HistoryEntry getLastEntry() {
-            if (entries.size() > 0)
-                return entries.peekLast();
-            throw new RuntimeException("Column is Empty");
-        }
-    }
-
 }
 
-class StringifiedGraph {
-    String header;
-    List<Row> rows = new ArrayList<>();
-
-    static class Row {
-        String branchesLine;
-        String description;
-    }
-
-}

@@ -45,7 +45,7 @@ public class SvgDrawing {
     };
 
 
-    static String createSvg(ArrayList<List<Main.HistoryEntry>> table, List<Ref> branches) {
+    static String createSvg(ArrayList<List<HistoryEntry>> table, List<Ref> branches) {
 
 
         List<String> result = new ArrayList<>();
@@ -54,7 +54,7 @@ public class SvgDrawing {
 
 
         int maxColumnSoFar = 0;
-        for (List<Main.HistoryEntry> entries : table) {
+        for (List<HistoryEntry> entries : table) {
             for (int c = 0; c < entries.size(); c++) {
                 if (entries.get(c) != null) {
                     maxColumnSoFar = Math.max(maxColumnSoFar, c);
@@ -64,7 +64,7 @@ public class SvgDrawing {
                 int colorLine = colors[c % colors.length].darker().getRGB() & 0xffffff;
                 int colorLineMerge = colors[c % colors.length].darker().getRGB() & 0xffffff;
                 int color = colors[c % colors.length].getRGB() & 0xffffff;
-                Main.HistoryEntry historyEntry = entries.get(c);
+                HistoryEntry historyEntry = entries.get(c);
 
                 if (historyEntry != null) {
                     maxColumnSoFar = Math.max(maxColumnSoFar, c);
@@ -138,7 +138,7 @@ public class SvgDrawing {
 
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static Path drawSecondaryParentConnection(Main.HistoryEntry entry, int myColumn, ArrayList<List<Main.HistoryEntry>> table) {
+    private static Path drawSecondaryParentConnection(HistoryEntry entry, int myColumn, ArrayList<List<HistoryEntry>> table) {
         int mainNodeColumn = findMainNodeFor(entry.commit, table.get(entry.commitId));
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
@@ -165,7 +165,7 @@ public class SvgDrawing {
 
     }
 
-    private static Commit drawCommit(Main.HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color, int maximalFilledColumnSoFar) {
+    private static Commit drawCommit(HistoryEntry historyEntry, int columnPosition, List<Ref> branches, int color, int maximalFilledColumnSoFar) {
         String commit;
         List<String> branchesOnCommit = branches.stream()
                 .filter(b -> b.getObjectId().equals(historyEntry.commit.toObjectId()))
@@ -220,7 +220,7 @@ public class SvgDrawing {
         return res;
     }
 
-    private static Optional<Path> drawMainParentConnection(Main.HistoryEntry entry, int columnPosition, ArrayList<List<Main.HistoryEntry>> table) {
+    private static Optional<Path> drawMainParentConnection(HistoryEntry entry, int columnPosition, ArrayList<List<HistoryEntry>> table) {
         int startingId = entry.commitId;
 
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
@@ -235,9 +235,9 @@ public class SvgDrawing {
     }
 
     @SuppressWarnings("UnnecessaryLocalVariable")
-    private static Path getPathToParent(Main.HistoryEntry entry, int columnPosition, int startingId, int parentId, int parentColumn) {
+    private static Path getPathToParent(HistoryEntry entry, int columnPosition, int startingId, int parentId, int parentColumn) {
         int startX = leftOffset + columnPosition * commitWidth;
-        int startY = topOffset + startingId * commitHeight + (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
+        int startY = topOffset + startingId * commitHeight + (entry.typeOfParent == TypeOfParent.MERGE_STH ? circleDistanceY : 0);
         int parentX = leftOffset + parentColumn * commitWidth;
         int parentY = topOffset + parentId * commitHeight;
 
@@ -258,7 +258,7 @@ public class SvgDrawing {
                 int pointSameColumnY = parentY - commitHeight;
 
                 if (parentId == startingId + 1) {
-                    pointSameColumnY += (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
+                    pointSameColumnY += (entry.typeOfParent == TypeOfParent.MERGE_STH ? circleDistanceY : 0);
                 }
 
                 m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
@@ -302,7 +302,7 @@ public class SvgDrawing {
                 int pointSameColumnY = parentY - commitHeight;
 
                 if (parentId == startingId + 1) {
-                    pointSameColumnY += (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
+                    pointSameColumnY += (entry.typeOfParent == TypeOfParent.MERGE_STH ? circleDistanceY : 0);
                 }
 
                 m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
@@ -338,9 +338,9 @@ public class SvgDrawing {
         String description;
     }
 
-    private static int findMainNodeFor(RevCommit commit, List<Main.HistoryEntry> row) {
+    private static int findMainNodeFor(RevCommit commit, List<HistoryEntry> row) {
         for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
-            Main.HistoryEntry parent = row.get(parentColumn);
+            HistoryEntry parent = row.get(parentColumn);
             if (parent != null && parent.typeOfParent.isMainNode() && parent.commit == commit) {
                 return parentColumn;
             }
