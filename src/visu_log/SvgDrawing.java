@@ -35,6 +35,7 @@ public class SvgDrawing {
                             break;
                         case MERGE_STH:
                             result.add(drawSecondaryParentConnection(historyEntry, c, table));
+                            result.add(drawMainParentConnection(historyEntry, c, table));
                             break;
                     }
 
@@ -96,14 +97,15 @@ public class SvgDrawing {
         for (int parentId = startingId + 1; parentId < table.size(); parentId++) {
             int parentColumn = findMainNodeFor(entry.parent, table.get(parentId));
             if (parentColumn >= 0) {
-                Main.HistoryEntry parent = table.get(parentId).get(parentColumn);
+
+                int startX = leftOffset + columnPosition * commitWidth;
+                int startY = topOffset + startingId * commitHeight + (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
 
                 if (parentColumn == columnPosition) {
-                    return String.format(l, leftOffset + columnPosition * commitWidth, topOffset + startingId * commitHeight, leftOffset + columnPosition * commitWidth, topOffset + parentId * commitHeight);
-                } else if (parentColumn < columnPosition) {
 
-                    int startX = leftOffset + columnPosition * commitWidth;
-                    int startY = topOffset + startingId * commitHeight;
+                    return String.format(l, startX, startY, leftOffset + columnPosition * commitWidth, topOffset + parentId * commitHeight);
+                } else {
+
 
                     String m = String.format("M %d, %d ", startX, startY);
 
@@ -114,12 +116,11 @@ public class SvgDrawing {
                     int crossPointY = parentY;
 
                     String l1 = String.format("L %d, %d ", crossPointX, crossPointY - circleDistanceY);
-                    String c2 = String.format("Q %d, %d, %d, %d ", crossPointX, crossPointY, crossPointX - circleDistanceX, crossPointY);
+                    int dx = Integer.signum(parentColumn - columnPosition) * circleDistanceY;
+                    String c2 = String.format("Q %d, %d, %d, %d ", crossPointX, crossPointY, crossPointX + dx, crossPointY);
                     String l3 = String.format("L %d, %d ", parentX, parentY);
 
                     return String.format(circleAndLine, m + l1 + c2 + l3);
-                } else {
-                    throw new RuntimeException("Kann ich noch nicht");
                 }
             }
         }
