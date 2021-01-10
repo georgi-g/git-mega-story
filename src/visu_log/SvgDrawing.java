@@ -229,6 +229,10 @@ public class SvgDrawing {
                 int pointSameColumnX = startX;
                 int pointSameColumnY = parentY - commitHeight;
 
+                if (parentId == startingId + 1) {
+                    pointSameColumnY += (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
+                }
+
                 m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
 
                 int cp1X_Pre = startX;
@@ -268,6 +272,10 @@ public class SvgDrawing {
 
                 int pointSameColumnX = startX;
                 int pointSameColumnY = parentY - commitHeight;
+
+                if (parentId == startingId + 1) {
+                    pointSameColumnY += (entry.typeOfParent == Main.TypeOfParent.MERGE_STH ? circleDistanceY : 0);
+                }
 
                 m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
 
