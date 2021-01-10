@@ -105,8 +105,8 @@ public class Main {
     static boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
     static boolean alwaysCreateNewColumns = false;
     static boolean joinDroppingColumns = true;
-    static boolean mayJoinDroppingMainColumn = true;
-    static boolean forceCreateNewColumnsForLabeledCommits = false;
+    static boolean mayJoinDroppingMainColumn = false;
+    static boolean forceCreateNewColumnsForLabeledCommits = true;
 
     private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
         //noinspection ConstantConditions
@@ -184,14 +184,20 @@ public class Main {
                 .forEach(parent -> {
                     boolean joined = false;
                     if (columnsWithDanglingParents.containsKey(parent) && joinDroppingColumns) {
-                        Optional<Column> danglingList = Stream.of(
-                                columnsWithDanglingParents.get(parent).get(false),
-                                mayJoinDroppingMainColumn ? columnsWithDanglingParents.get(parent).get(true) : Collections.<Column>emptyList()
-                        )
-                                .flatMap(Collection::stream).findFirst();
-                        if (danglingList.isPresent()) {
-                            Column danglingColumn = danglingList.get();
-                            newEntryForParent(revCommit, parent, danglingColumn, TypeOfBackReference.YES, commitId);
+                        List<Column> secondaryDroppingColumns = columnsWithDanglingParents.get(parent).get(false);
+                        List<Column> mainDroppingColumns = columnsWithDanglingParents.get(parent).get(true);
+                        Optional<Column> columnToUse;
+                        if (secondaryDroppingColumns.isEmpty() && !mainDroppingColumns.isEmpty() && !mayJoinDroppingMainColumn) {
+                            columnToUse = Optional.of(mainDroppingColumns.get(0).createSubColumnBefore(branchId[0]++));
+                        } else {
+                            columnToUse = Stream.of(
+                                    columnsWithDanglingParents.get(parent).get(false),
+                                    mayJoinDroppingMainColumn ? columnsWithDanglingParents.get(parent).get(true) : Collections.<Column>emptyList())
+                                    .flatMap(Collection::stream).findFirst();
+                        }
+
+                        if (columnToUse.isPresent()) {
+                            newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.YES, commitId);
                             joined = true;
                         }
                     }
