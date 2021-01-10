@@ -134,7 +134,10 @@ public class Main {
 //        }
 
         final int[] branchId = {0};
-        master.forEach(revCommit -> calculateEntryForCommit(revCommit, branches, theParentColumn, branchId));
+        for (int i = 0, masterSize = master.size(); i < masterSize; i++) {
+            RevCommit revCommit = master.get(i);
+            calculateEntryForCommit(revCommit, branches, theParentColumn, branchId, i);
+        }
 
 
         List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
@@ -146,7 +149,7 @@ public class Main {
         graph.rows.forEach(r -> System.out.println(r.branchesLine + "  " + r.description));
     }
 
-    private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId) {
+    private static void calculateEntryForCommit(RevCommit revCommit, List<Ref> branches, Column theParentColumn, int[] branchId, int commitId) {
         //noinspection ConstantConditions
         Map<RevCommit, List<Column>> columnsWithDanglingParents = theParentColumn.getColumnStream()
                 .filter(c -> c.entries.size() > 0)
@@ -179,11 +182,11 @@ public class Main {
                 RevCommit parent = revCommit.getParentCount() > 0 ? revCommit.getParent(0) : null;
                 if (parent != null)
                     usedParents.add(parent);
-                newEntryForParent(revCommit, parent, h.column, TypeOfBackReference.YES);
+                newEntryForParent(revCommit, parent, h.column, TypeOfBackReference.YES, commitId);
                 alreadyReused[0] = true;
             } else {
                 // here we create a backreference, since we found a column waiting for this commit
-                newEntryBackReferenceWithoutParent(revCommit, h.column);
+                newEntryBackReferenceWithoutParent(revCommit, h.column, commitId);
             }
         });
 
@@ -195,7 +198,7 @@ public class Main {
                     .filter(columnsWithDanglingParents::containsKey)
                     .forEach(parent -> {
                         Column dangling = columnsWithDanglingParents.get(parent).get(0);
-                        newEntryForParent(revCommit, parent, dangling, TypeOfBackReference.YES);
+                        newEntryForParent(revCommit, parent, dangling, TypeOfBackReference.YES, commitId);
                         usedParents.add(parent);
                     });
         }
@@ -207,14 +210,14 @@ public class Main {
             for (RevCommit parent : revCommit.getParents()) {
                 if (!usedParents.contains(parent)) {
                     increase = true;
-                    newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO);
+                    newEntryForParent(revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
                 }
             }
             if (increase)
                 branchId[0]++;
         } else {
             if (!alreadyReused[0]) {
-                newEntryForParent(revCommit, null, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO);
+                newEntryForParent(revCommit, null, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO, commitId);
                 branchId[0]++;
             }
         }
@@ -232,6 +235,7 @@ public class Main {
         List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
 
         master.forEach(revCommit -> {
+            int commitId = -1;
             boolean commitDidAppear = false;
             StringBuilder brancPic = new StringBuilder();
             for (Deque<HistoryEntry> c : droppingColumns) {
@@ -240,6 +244,7 @@ public class Main {
 
                 if (historyEntry != null) {
                     commitDidAppear = true;
+                    commitId = historyEntry.commitId;
                     columnsHavingCommits.add(c);
 
                     brancPic.append(historyEntry.typeOfParent.getSymbol(historyEntry.backReference));
@@ -260,7 +265,7 @@ public class Main {
 
             StringifiedGraph.Row r = new StringifiedGraph.Row();
             r.branchesLine = branchesLine;
-            r.description = revCommit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(revCommit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
+            r.description = commitId + " " + revCommit.getId().getName() + " " + branches.stream().filter(b -> b.getObjectId().equals(revCommit.getId())).map(Ref::getName).collect(Collectors.joining(" "));
             graph.rows.add(r);
         });
         if (droppingColumns.stream().anyMatch(c -> !c.isEmpty())) {
@@ -270,15 +275,15 @@ public class Main {
         return graph;
     }
 
-    private static void newEntryBackReferenceWithoutParent(RevCommit revCommit, Column theColumn) {
-        HistoryEntry historyEntry = new HistoryEntry(theColumn);
+    private static void newEntryBackReferenceWithoutParent(RevCommit revCommit, Column theColumn, int commitId) {
+        HistoryEntry historyEntry = new HistoryEntry(theColumn, commitId);
         historyEntry.commit = revCommit;
         historyEntry.backReference = TypeOfBackReference.YES;
         historyEntry.typeOfParent = TypeOfParent.NONE;
     }
 
-    private static void newEntryForParent(RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference) {
-        HistoryEntry historyEntry = new HistoryEntry(theColumn);
+    private static void newEntryForParent(RevCommit revCommit, RevCommit parent, Column theColumn, TypeOfBackReference backReference, int commitId) {
+        HistoryEntry historyEntry = new HistoryEntry(theColumn, commitId);
         historyEntry.commit = revCommit;
 
         switch (revCommit.getParentCount()) {
@@ -331,11 +336,13 @@ public class Main {
         RevCommit commit;
         RevCommit parent;
         final Column column;
+        final int commitId;
         TypeOfBackReference backReference;
         TypeOfParent typeOfParent;
 
-        private HistoryEntry(Column column) {
+        private HistoryEntry(Column column, int commitId) {
             this.column = column;
+            this.commitId = commitId;
             column.appendEntry(this);
         }
     }
