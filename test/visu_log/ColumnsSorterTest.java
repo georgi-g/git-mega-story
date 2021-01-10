@@ -105,7 +105,7 @@ class ColumnsSorterTest {
         Branch b = new Branch("B", commit2, 0);
 
         List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(List.of(b), List.of(commit2, commit));
-        columns.forEach(this::validateColumn);
+        validateAllColumns(columns);
 
 
         System.out.println(SimpleTextBasedGraph.getString(SimpleTextBasedGraph.printGraph(TableCreator.createTableFromDroppingColumns(columns))));
@@ -126,7 +126,7 @@ class ColumnsSorterTest {
 
         assertSame(2, columns.size());
 
-        columns.forEach(this::validateColumn);
+        validateAllColumns(columns);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -148,25 +148,40 @@ class ColumnsSorterTest {
         assertSame(commit2, columns.get(1).entries.peekFirst().commit);
         assertSame(TypeOfBackReference.NO, columns.get(1).entries.peekFirst().backReference);
 
-        columns.forEach(this::validateColumn);
+        validateAllColumns(columns);
     }
 
-    void validateColumn(Column column) {
+    public static void validateAllColumns(List<Column> columns) {
+        columns.forEach(ColumnsSorterTest::validateColumn);
+    }
+
+    static void validateColumn(Column column) {
         List<HistoryEntry> entries = new ArrayList<>(column.entries);
         for (int i = 0; i < entries.size(); i++) {
             HistoryEntry entry = entries.get(i);
             if (i < entries.size() - 1) {
-                assertTrue(entry.typeOfParent.hasParent());
-                assertSame((entries.get(i + 1).commit), entry.parent);
+                assertTrue(entry.typeOfParent.hasParent(), String.format("(Column %d): Entry is not last so should have a parent: Entry %d", column.branchId, i));
+                boolean parentFound = false;
+                for (int next = i + 1; next < entries.size() && !parentFound; next++) {
+                    assertTrue(entries.get(next).commit == entry.parent || entries.get(next).parent == entry.parent, String.format("(Column %d): Entry %d has parent but it does not match the commit of Entry %d", column.branchId, i, next));
+                    if (entries.get(next).commit == entry.parent) {
+                        parentFound = true;
+                    }
+                }
+                assertTrue(parentFound, String.format("(Column %d): Parent found for entry %d", column.branchId, i));
             } else {
-                assertFalse(entry.typeOfParent.hasParent());
+                assertFalse(entry.typeOfParent.hasParent(), String.format("(Column %d): Last Entry %d in Column Should not have Parent. Or maybe a Backreference is missing.", column.branchId, i));
+            }
+
+            if (entry.typeOfParent == TypeOfParent.MERGE_STH) {
+                assertEquals(TypeOfBackReference.NO, entry.backReference, String.format("(Column %d) Secondary Parents do not have Back References. Entry %d", column.branchId, i));
             }
 
             if (i > 0) {
-                assertEquals(TypeOfBackReference.YES, entry.backReference);
-                assertSame((entries.get(i - 1).parent), entry.commit);
+                if (entry.backReference == TypeOfBackReference.YES)
+                    assertSame(entries.get(i - 1).parent, entry.commit, String.format("(Column %d): Back Reference for entry %d does not match the parent of entry %d", column.branchId, i, i - 1));
             } else {
-                assertSame(TypeOfBackReference.NO, entry.backReference);
+                assertSame(TypeOfBackReference.NO, entry.backReference, "First Entry");
             }
         }
     }
