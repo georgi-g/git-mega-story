@@ -17,6 +17,8 @@ public class SvgDrawing {
     static int circleDistanceX = 10;
     static int circleDistanceY = 10;
 
+    static int incomingSecondaryMergeTransitionHeight = 4;
+
     // transitionHeight < splitPoint*2
     // commitHeight - commitWidth < incommingFromChildTransitionHeight
     static int incommingFromChildSplitPoint = 12;
@@ -140,6 +142,8 @@ public class SvgDrawing {
         if (mainNodeColumn < 0)
             throw new RuntimeException("My Main Node not found");
 
+        int myColumnIsRight = Integer.signum(myColumn - mainNodeColumn);
+
         int theLine = entry.commitId;
 
         int startX = leftOffset + mainNodeColumn * commitWidth;
@@ -147,15 +151,20 @@ public class SvgDrawing {
 
         String m = String.format("M %d, %d ", startX, startY);
 
-        int myX = leftOffset + myColumn * commitWidth;
-        int myY = startY;
+        int mergeTransX = startX + commitWidth / 2 * myColumnIsRight;
+        int mergeTransY = startY + incomingSecondaryMergeTransitionHeight;
 
-        String l1 = String.format("L %d, %d ", myX + circleDistanceX * Integer.signum(mainNodeColumn - myColumn), myY);
-        String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, myY + circleDistanceY);
+        String c1 = String.format("Q %d, %d, %d, %d ", (mergeTransX + startX) / 2, mergeTransY, mergeTransX, mergeTransY);
+
+        int myX = leftOffset + myColumn * commitWidth;
+        int myY = mergeTransY;
+
+        String l1 = String.format("L %d, %d ", myX - circleDistanceX * myColumnIsRight, myY);
+        String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, startY + circleDistanceY);
 
         Path path = new Path();
         path.startPoint = m;
-        path.path = l1 + c2;
+        path.path = c1 + l1 + c2;
         path.parentColumn = myColumn;
 
         return path;
@@ -216,6 +225,7 @@ public class SvgDrawing {
         return res;
     }
 
+    // optional because if the history was truncated (and without parent rewrite) we have dangling parent references
     private static Optional<Path> drawMainParentConnection(HistoryEntry entry, int columnPosition, List<List<HistoryEntry>> table) {
         int startingId = entry.commitId;
 
