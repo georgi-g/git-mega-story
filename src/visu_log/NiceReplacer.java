@@ -43,7 +43,7 @@ public class NiceReplacer {
         return doReplace(reverseBranches, s, "╯");
     }
 
-    Pattern reverseMergePoints = Pattern.compile("(?<=[╋┣┿┯].*)(╭)");
+    Pattern reverseMergePoints = Pattern.compile("(?<=[╋┣┿┯┏].*)(╭)");
 
     public String turnMergePoints(String s) {
         return doReplace(reverseMergePoints, s, "╮");

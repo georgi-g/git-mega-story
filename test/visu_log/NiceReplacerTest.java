@@ -45,6 +45,7 @@ class NiceReplacerTest {
         assertEquals(" ╰ ┣ ╮  ╰ │ │  ", replacer.turnMergePoints(" ╰ ┣ ╭  ╰ │ │  "));
         assertEquals(" ╰   ╭  ╰ │ │  ", replacer.turnMergePoints(" ╰   ╭  ╰ │ │  "));
         assertEquals(" ╰ ┿ ╮  ╰ │ │  ", replacer.turnMergePoints(" ╰ ┿ ╭  ╰ │ │  "));
+        assertEquals(" ╭──┼──┯  ", replacer.turnMergePoints(" ╭──┼──┯  "));
     }
 
     @Test

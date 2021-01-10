@@ -92,6 +92,7 @@ public class Main {
         List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
 
         ArrayList<List<HistoryEntry>> table = createTableFromDroppingColumns(columns);
+        rewriteSecondaryDropping(table);
 
         StringifiedGraph graph = printGraph(branches, table);
 
@@ -197,7 +198,7 @@ public class Main {
                         }
 
                         if (columnToUse.isPresent()) {
-                            newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.YES, commitId);
+                            newEntryForParent(revCommit, parent, columnToUse.get(), TypeOfBackReference.NO, commitId);
                             joined = true;
                         }
                     }
@@ -238,6 +239,49 @@ public class Main {
         return table;
     }
 
+    private static void rewriteSecondaryDropping(ArrayList<List<HistoryEntry>> table) {
+        Integer[] moves = new Integer[table.get(0).size()];
+
+        for (int lineId = table.size() - 1; lineId >= 0; lineId--) {
+            List<HistoryEntry> row = table.get(lineId);
+            int mainNodeColumn = findMainNode(row);
+
+            for (int i = 0; i < row.size(); i++) {
+                // clear if something is in there
+                if (moves[i] != null && row.get(moves[i]) != null) {
+                    moves[i] = null;
+                }
+                // move else
+                else if (moves[i] != null && row.get(i) != null) {
+                    // move if it is merge_sth
+                    if (row.get(i).typeOfParent == TypeOfParent.MERGE_STH) {
+                        row.set(moves[i], row.get(i));
+                        row.set(i, null);
+                    }
+                    // everything else blocks other moves
+                    else {
+                        moves[i] = null;
+                    }
+                }
+            }
+
+            for (int i = 0; i < row.size(); i++) {
+                if (i != mainNodeColumn && row.get(i) != null && row.get(i).backReference == TypeOfBackReference.YES) {
+                    moves[i] = mainNodeColumn;
+                }
+            }
+        }
+    }
+
+    private static int findMainNode(List<Main.HistoryEntry> row) {
+        for (int parentColumn = 0; parentColumn < row.size(); parentColumn++) {
+            Main.HistoryEntry parent = row.get(parentColumn);
+            if (parent != null && parent.typeOfParent.isMainNode()) {
+                return parentColumn;
+            }
+        }
+        return -1;
+    }
 
     private static StringifiedGraph printGraph(List<Ref> branches, ArrayList<List<HistoryEntry>> table) {
 
@@ -318,7 +362,7 @@ public class Main {
     public enum TypeOfParent {
         SINGLE_PARENT("┿", "┯", true),
         INITIAL("┷", "╸", true),
-        MERGE_STH("╭", "╮", false),
+        MERGE_STH("╭", "╭", false),
         MERGE_MAIN("┣", "┏", true),
         NONE("╰", "x", false);
 
