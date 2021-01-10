@@ -19,14 +19,7 @@ class SvgDrawingTest {
     Path tmpDir;
 
     @Test
-    void createSvgThreeCommits() throws InterruptedException, IOException {
-
-
-        System.out.println(tmpDir.toUri());
-
-        Path output = tmpDir.resolve("out.html");
-        System.out.println(output.toUri());
-
+    void createSvgThreeCommits() {
         Commit initial = TestCommit.createCommit();
         Commit next = TestCommit.createCommit(initial);
         Commit next2 = TestCommit.createCommit(next);
@@ -39,26 +32,12 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(initial, null, c, TypeOfBackReference.YES, 5);
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c));
-        TableRewriting.repairIds(entries);
 
-        String svg = SvgDrawing.createSvg(entries);
-
-        try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
-            w.write(svg);
-        }
-
-        Thread.sleep(10000);
-
+        showResults(entries);
     }
 
     @Test
-    void createSvgTwoBranches() throws InterruptedException, IOException {
-
-
-        System.out.println(tmpDir.toUri());
-
-        Path output = tmpDir.resolve("out.html");
-        System.out.println(output.toUri());
+    void createSvgTwoBranches() {
 
         Commit initial = TestCommit.createCommit();
         Commit fork = TestCommit.createCommit(initial);
@@ -80,16 +59,28 @@ class SvgDrawingTest {
         CommitStorage.newEntryForParent(featureCommit, fork, c2, TypeOfBackReference.YES, 1);
 
         List<List<HistoryEntry>> entries = TableCreator.createTableFromDroppingColumns(List.of(c1, c2));
+
+        showResults(entries);
+    }
+
+    private void showResults(List<List<HistoryEntry>> entries) {
+        Path output = tmpDir.resolve("out.html");
+        System.out.println(output.toUri());
+
         TableRewriting.repairIds(entries);
 
         String svg = SvgDrawing.createSvg(entries);
 
-        try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
-            w.write(svg);
+        try {
+
+            try (Writer w = new OutputStreamWriter(Files.newOutputStream(output), StandardCharsets.UTF_8)) {
+                w.write(svg);
+            }
+
+            Thread.sleep(10000);
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
-
-        Thread.sleep(10000);
-
     }
 }
 
