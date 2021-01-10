@@ -59,10 +59,5 @@ class MyRevWalk extends RevWalk {
         public String getSha() {
             return getId().abbreviate(7).name();
         }
-
-        @Override
-        public String getSubject() {
-            return getShortMessage();
-        }
     }
 }

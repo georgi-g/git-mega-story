@@ -11,7 +11,5 @@ public interface Commit {
     List<Commit> getMyParents();
 
     String getSha();
-
-    String getSubject();
 }
 

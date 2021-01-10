@@ -83,12 +83,19 @@ public class Main {
         TableRewriting.compressTable(table);
 
         System.out.println("create create svg");
-        String svg = SvgDrawing.createSvg(table);
+        String svg = new SvgDrawing(new DescriptionProvider()).createSvg(table);
 
         try (FileWriter b = new FileWriter(new File("mega-story.html"))) {
             b.write(svg);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    static class DescriptionProvider implements SvgDrawing.DescriptionProvider {
+        @Override
+        public String getDescription(Commit commit) {
+            return commit.getSha() + " " + ((RevCommit) commit).getShortMessage();
         }
     }
 

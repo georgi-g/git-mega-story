@@ -66,14 +66,14 @@ class SvgDrawingTest {
     @Test
     void createSvgCrossingMerge() {
 
-        Commit initial = TestCommit.createCommit();
+        Commit initial = TestCommit.createCommit("A");
         Commit fork = TestCommit.createCommit(initial);
         Commit featureCommit = TestCommit.createCommit(fork);
-        Commit masterCommit = TestCommit.createCommit(fork);
-        Commit masterMergeCommit = TestCommit.createCommit(masterCommit, featureCommit);
+        Commit masterCommit = TestCommit.createCommit("B", fork);
+        Commit masterMergeCommit = TestCommit.createCommit("C", masterCommit, featureCommit);
         Commit oneMoreMasterCommit = TestCommit.createCommit(masterMergeCommit);
 
-        Commit anotherFeature = TestCommit.createCommit(fork);
+        Commit anotherFeature = TestCommit.createCommit("F", fork);
 
         Branch b = new Branch("master", masterMergeCommit);
 
@@ -136,7 +136,7 @@ class SvgDrawingTest {
 
         TableRewriting.repairIds(entries);
 
-        String svg = SvgDrawing.createSvg(entries);
+        String svg = new SvgDrawing(new DescriptionProvider()).createSvg(entries);
 
         try {
 
@@ -151,15 +151,29 @@ class SvgDrawingTest {
     }
 }
 
+class DescriptionProvider implements SvgDrawing.DescriptionProvider {
+    @Override
+    public String getDescription(Commit commit) {
+        TestCommit c = (TestCommit) commit;
+        return c.getDescription();
+    }
+}
+
 class TestCommit implements Commit {
     final List<Commit> parent;
+    final String description;
 
-    static Commit createCommit(Commit... parent) {
-        return new TestCommit(parent);
+    static Commit createCommit(String description, Commit... parent) {
+        return new TestCommit(description, parent);
     }
 
-    TestCommit(Commit... parent) {
+    static Commit createCommit(Commit... parent) {
+        return new TestCommit(null, parent);
+    }
+
+    TestCommit(String description, Commit... parent) {
         this.parent = Arrays.asList(parent);
+        this.description = description;
     }
 
     @Override
@@ -182,8 +196,7 @@ class TestCommit implements Commit {
         return "" + hashCode();
     }
 
-    @Override
-    public String getSubject() {
-        return "Subject";
+    public String getDescription() {
+        return description != null ? description : getSha();
     }
 }

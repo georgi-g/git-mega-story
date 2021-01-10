@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 public class SvgDrawing {
     static int topOffset = 20;
     static int leftOffset = 20;
-    static int commitWidth = 30;
+    static int commitWidth = 35;
     static int commitHeight = 40;
 
     static int circleDistanceX = 15;
@@ -25,12 +25,12 @@ public class SvgDrawing {
     static int incomingFromChildTransitionHeight = 18;
 
     private static final int labelOffset = 20;
-    private static final int commitDescriptionOffset = 20;
+    private static final int commitDescriptionOffset = 10;
 
     static String path = "\t<path d=\"%s\" fill=\"none\" stroke=\"#%06x\"/>";
     static String pathMerge = "\t<path d=\"%s\" stroke-dasharray=\"4 1\" fill=\"none\" stroke=\"#%06x\"/>";
 
-    static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"5\" fill=\"#%06x\" stroke=\"#000000\"/>";
+    static String usualCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"4\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String labeledCommit = "\t<circle class=\"%s\" cx=\"%d\" cy=\"%d\" r=\"7\" fill=\"#%06x\" stroke=\"#000000\"/>";
     static String debugPoint = "\t<circle cx=\"%d\" cy=\"%d\" r=\"2\" fill=\"none\" stroke=\"#%06x\"/>";
     static String label = "<text class=\"text_branch\" x=\"%d\" y=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>";
@@ -40,7 +40,7 @@ public class SvgDrawing {
             "        <g transform=\"translate(%d,%d)\" class=\"commit_branches commit_g\">\n" +
             "            <g class=\"%s\">\n" +
             "                <rect x=\"20\" y=\"-50\" rx=\"5\" width=\"200\" height=\"20\" fill=\"#%06x\" stroke=\"#%06x\"/>\n" +
-            "                <text x=\"%d\" fill=\"black\" alignment-baseline=\"middle\">%s</text>\n" +
+            "                <text x=\"%d\" fill=\"black\" alignment-baseline=\"hanging\">%s</text>\n" +
             "            </g>\n" +
             "        </g>\n";
 
@@ -59,8 +59,17 @@ public class SvgDrawing {
     static Color fillLabel = new Color(0xee, 0xff, 0xe4);
     static Color strokeLabel = new Color(0x30, 0x7f, 0x00);
 
+    interface DescriptionProvider {
+        String getDescription(visu_log.Commit commit);
+    }
 
-    static String createSvg(List<List<HistoryEntry>> table) {
+    final DescriptionProvider descriptionProvider;
+
+    public SvgDrawing(DescriptionProvider descriptionProvider) {
+        this.descriptionProvider = descriptionProvider;
+    }
+
+    public String createSvg(List<List<HistoryEntry>> table) {
 
 
         List<String> result = new ArrayList<>();
@@ -176,7 +185,7 @@ public class SvgDrawing {
         int myX = leftOffset + myColumn * commitWidth;
         int myY = mergeTransY;
 
-        String l1 = String.format("L %d, %d ", myX - circleDistanceX * myColumnIsRight, myY);
+        String l1 = String.format("L %d, %d ", myX - (circleDistanceX - incomingSecondaryMergeTransitionHeight) * myColumnIsRight, myY);
         String c2 = String.format("Q %d, %d, %d, %d ", myX, myY, myX, startY + circleDistanceY);
 
         Path path = new Path();
@@ -188,7 +197,7 @@ public class SvgDrawing {
 
     }
 
-    private static Commit drawCommit(HistoryEntry historyEntry, int columnPosition, int color, int maximalFilledColumnSoFar) {
+    private Commit drawCommit(HistoryEntry historyEntry, int columnPosition, int color, int maximalFilledColumnSoFar) {
         String commit;
         List<String> branchesOnCommit = historyEntry.branches.stream()
                 .map(b -> b.name)
@@ -206,7 +215,7 @@ public class SvgDrawing {
             commit = String.format(usualCommit, theClass, startX, startY, color);
         }
 
-        String descriptionText = theClass + " " + historyEntry.commit.getSubject();
+        String descriptionText = descriptionProvider.getDescription(historyEntry.commit);
         String description = String.format(commitDescription, startX, startY, theClass, getColor(fillDescription), getColor(strokeDescription), commitDescriptionOffset, descriptionText);
 
 
