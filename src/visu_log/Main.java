@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -66,7 +65,7 @@ public class Main {
         List<Column> columns = ColumnsSorter.sortCommitsIntoColumns(branches, master);
 
         System.out.println("Create Table from dropping Columns");
-        ArrayList<List<HistoryEntry>> table = TableCreator.createTableFromDroppingColumns(columns);
+        List<List<HistoryEntry>> table = TableCreator.createTableFromDroppingColumns(columns);
         System.out.println("Rewrite secondary dropping");
         TableRewriting.rewriteSecondaryDropping(table);
 

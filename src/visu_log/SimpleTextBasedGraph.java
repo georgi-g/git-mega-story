@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SimpleTextBasedGraph {
-    static StringifiedGraph printGraph(List<Branch> branches, ArrayList<List<HistoryEntry>> table) {
+    static StringifiedGraph printGraph(List<Branch> branches, List<List<HistoryEntry>> table) {
 
         StringifiedGraph graph = new StringifiedGraph();
 

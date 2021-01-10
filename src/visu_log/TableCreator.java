@@ -4,10 +4,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class TableCreator {
-    static ArrayList<List<HistoryEntry>> createTableFromDroppingColumns(List<Column> columns) {
+    static List<List<HistoryEntry>> createTableFromDroppingColumns(List<Column> columns) {
         List<Deque<HistoryEntry>> droppingColumns = columns.stream().map(c -> new ArrayDeque<>(c.entries)).collect(Collectors.toList());
 
-        ArrayList<List<HistoryEntry>> table = new ArrayList<>();
+        List<List<HistoryEntry>> table = new ArrayList<>();
         for (int currentLineNumber = 0; ; currentLineNumber++) {
             boolean commitsFound = false;
             List<HistoryEntry> entries = new ArrayList<>();

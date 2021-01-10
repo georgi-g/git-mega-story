@@ -1,11 +1,10 @@
 package visu_log;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
 public class TableRewriting {
-    static void rewriteSecondaryDropping(ArrayList<List<HistoryEntry>> table) {
+    static void rewriteSecondaryDropping(List<List<HistoryEntry>> table) {
         Integer[] moveAdvises = new Integer[table.get(0).size()];
 
         for (int lineId = table.size() - 1; lineId >= 0; lineId--) {
@@ -95,7 +94,7 @@ public class TableRewriting {
         return rowIsJoinable && !(nextIsLabeled && prevIsLabeled);
     }
 
-    static void compressTable(ArrayList<List<HistoryEntry>> table) {
+    static void compressTable(List<List<HistoryEntry>> table) {
         if (table.size() < 2) {
             return;
         }
