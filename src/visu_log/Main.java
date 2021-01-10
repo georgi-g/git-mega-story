@@ -136,7 +136,6 @@ public class Main {
 
         final int[] branchId = {0};
         master.forEach(revCommit -> {
-            final boolean[] inserted = {false};
 
             List<HistoryEntry> referencingEntries = theParentColumn.getColumnStream()
                     .map(c -> c.entries.peekLast())
@@ -144,24 +143,21 @@ public class Main {
                     .filter(e -> e.parent == revCommit)
                     .collect(Collectors.toList());
 
-            boolean createColumnForEachNewMultiParentCommit = false;
+            boolean mayReuseBranchForMultiParentCommit = true;
 
+            final boolean[] alreadyReused = {false};
             referencingEntries
                     .forEach(h -> {
-                        //if (true) {
-                        if (!createColumnForEachNewMultiParentCommit || revCommit.getParentCount() <= 1) {
-                            if (!inserted[0]) {
-                                newEntry(ll, revCommit, h.column);
-                                inserted[0] = true;
-                            } else {
-                                newEntryBackReference(ll, revCommit, h.column);
-                            }
+                        boolean reuseColumn = !alreadyReused[0] && (revCommit.getParentCount() <= 1 || mayReuseBranchForMultiParentCommit);
+                        if (reuseColumn) {
+                            newEntry(ll, revCommit, h.column);
+                            alreadyReused[0] = true;
                         } else {
                             newEntryBackReference(ll, revCommit, h.column);
                         }
                     });
 
-            if (!inserted[0])
+            if (!alreadyReused[0])
                 newEntry(ll, revCommit, theParentColumn.createSubColumn(branchId[0]++));
 
         });
