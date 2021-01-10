@@ -148,15 +148,19 @@ public class Main {
                     .filter(e -> Objects.nonNull(e.parent))
                     .collect(Collectors.groupingBy(e -> e.parent));
 
+            boolean commitIsLabeledByABranch = branches.stream().anyMatch(b -> b.getObjectId().equals(revCommit.getId()));
+
+
             boolean alwaysCreateNewColumnsForEachParentOfAMultiParentCommit = false;
             boolean joinDroppingColumns = true;
+            boolean forceCreateNewColumnsForLabeledCommits = false;
 
             final boolean[] alreadyReused = {false};
             Set<RevCommit> usedParents = new HashSet<>();
             referencingEntries
                     .forEach(h -> {
                         //noinspection ConstantConditions
-                        boolean reuseColumn = !alreadyReused[0] && (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
+                        boolean reuseColumn = !alreadyReused[0] && (!forceCreateNewColumnsForLabeledCommits || !commitIsLabeledByABranch) && (revCommit.getParentCount() <= 1 || !alwaysCreateNewColumnsForEachParentOfAMultiParentCommit);
                         // here we have a column having history entries waiting for this commit
                         if (reuseColumn) {
                             //    newEntry(ll, revCommit, h.column);
@@ -187,11 +191,15 @@ public class Main {
 
             // here we create new column for each entry, so no history entries in column waiting for it
             if (revCommit.getParentCount() > 0) {
+                boolean increase = false;
                 for (RevCommit parent : revCommit.getParents()) {
-                    if (!usedParents.contains(parent))
+                    if (!usedParents.contains(parent)) {
+                        increase = true;
                         newEntryForParent(ll, revCommit, parent, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO);
+                    }
                 }
-                branchId[0]++;
+                if (increase)
+                    branchId[0]++;
             } else {
                 if (!alreadyReused[0]) {
                     newEntryForParent(ll, revCommit, null, theParentColumn.createSubColumn(branchId[0]), TypeOfBackReference.NO);
@@ -204,10 +212,7 @@ public class Main {
 
         List<Column> columns = theParentColumn.getColumnStream().collect(Collectors.toList());
 
-        columns.forEach(c -> {
-            System.out.print(c.branchId);
-        });
-        System.out.println("  ");
+        System.out.println(columns.stream().map(c -> Integer.toString(c.branchId)).collect(Collectors.joining("  ")));
 
 
         Set<Object> columnsHavingCommits = new HashSet<>();
