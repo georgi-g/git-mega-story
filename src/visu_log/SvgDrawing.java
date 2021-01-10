@@ -147,15 +147,15 @@ public class SvgDrawing {
         int diagramSize = table.size() * commitHeight + topOffset * 2;
 
         String svgFrame = "<style type=\"text/css\">\n" +
-                "\tcircle {stroke-width: 2;}\n" +
+                "\tcircle {stroke-width: 2;transition: r 200ms}\n" +
                 "\tcircle:hover, rect:hover + circle, circle.commitHover {r: 9;}\n" +
-                "\tpath {stroke-width: 1;}\n" +
+                "\tpath {stroke-width: 1; transition: stroke-width 200ms}\n" +
                 "\t.first-commit-path {stroke-width: 2;}\n" +
                 "\tpath:hover {stroke-width: 4;}\n" +
                 "\ttext {font-family: Arial, Helvetica, sans-serif}\n" +
-                "\t.commit_g > g {display: none;}\n" +
-                "\tg.show_group {display: unset;}\n" +
-                "\tg.show_group_click {display: unset;}\n" +
+                "\t.commit_g > g {visibility: hidden;opacity: 0;transition: opacity 200ms, visibility 200ms}\n" +
+                "\tg.show_group {visibility: visible;opacity: 1}\n" +
+                "\tg.show_group_click {visibility: visible;opacity: 1}\n" +
                 "\t.show_group_click > rect {stroke-width:2;}\n" +
                 "</style>\n" +
                 "<svg width=\"4000\" height=\"%d\">" +
