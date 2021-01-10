@@ -183,18 +183,17 @@ public class SvgDrawing {
                 int parentX = leftOffset + parentColumn * commitWidth;
                 int parentY = topOffset + parentId * commitHeight;
 
+                String startPoint = String.format("M %d, %d ", startX, startY);
+                String m = "";
+
 
                 if (parentColumn == columnPosition) {
-                    String m = String.format("M %d, %d ", startX, startY);
                     m += String.format("L %d, %d ", parentX, parentY);
-
-                    return String.format(path, m, color);
                 } else {
 
                     if (Math.abs(parentColumn - columnPosition) > 1) {
                         String debugPoints = "";
 
-                        String m = String.format("M %d, %d ", startX, startY);
                         int parentIsRight = Integer.signum(parentColumn - columnPosition);
 
                         int pointSameColumnX = startX;
@@ -234,9 +233,7 @@ public class SvgDrawing {
                         //debugPoints += String.format(debugPoint, splitPointX, splitPointY);
 
 
-                        return String.format(path, m, color) + debugPoints;
                     } else {
-                        String m = String.format("M %d, %d ", startX, startY);
                         int parentIsRight = Integer.signum(parentColumn - columnPosition);
 
                         int pointSameColumnX = startX;
@@ -244,7 +241,7 @@ public class SvgDrawing {
 
                         m += String.format("L %d, %d ", pointSameColumnX, pointSameColumnY);
 
-                        // to to parent
+                        // go to parent
                         int cp1X = startX;
                         int cp1Y = parentY - incommingFromChildTransitionHeight;
 
@@ -254,10 +251,10 @@ public class SvgDrawing {
                         m += String.format("Q %d, %d, %d, %d ", cp1X, cp1Y, splitPointX, splitPointY);
                         m += String.format("T %d, %d ", parentX, parentY);
 
-                        return String.format(path, m, color);
                     }
 
                 }
+                return String.format(path, startPoint + m, color);
             }
         }
         throw new RuntimeException("There was no parent");
